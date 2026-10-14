@@ -1,0 +1,41 @@
+/* Your theme, the web version of theme.js */
+:root {
+  --color-primary: #2563eb;
+  --color-primary-light: #dbeafe;
+  --color-white: #ffffff;
+  --color-background: #f8fafc;
+  --color-text-dark: #0f172a;
+  --color-text-grey: #64748b;
+  --color-border: #e2e8f0;
+  --color-error: #dc2626;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+
+  --font-small: 12px;
+  --font-body: 14px;
+  --font-medium: 16px;
+  --font-title: 20px;
+  --font-heading: 28px;
+
+  --shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-text-dark);
+  font-family: Arial, Helvetica, sans-serif;
+}

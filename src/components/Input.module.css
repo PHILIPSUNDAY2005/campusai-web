@@ -1,0 +1,46 @@
+.wrapper {
+  margin-bottom: var(--space-md);
+}
+
+.label {
+  display: block;
+  font-size: var(--font-body);
+  font-weight: 600;
+  margin-bottom: var(--space-xs);
+}
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0 var(--space-md);
+}
+
+.inputRow:focus-within {
+  border-color: var(--color-primary);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: var(--space-md) 0;
+  font-size: var(--font-medium);
+  font-family: inherit;
+  color: var(--color-text-dark);
+}
+
+.toggle {
+  background: none;
+  border: none;
+  margin-left: var(--space-sm);
+  color: var(--color-primary);
+  font-size: var(--font-body);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+}
