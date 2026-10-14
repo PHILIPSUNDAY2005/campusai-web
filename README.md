@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CampusAI
 
-## Getting Started
+An AI-powered campus assistant web app for students, built as a Level 300 Computer Science semester project.
 
-First, run the development server:
+**Live demo:** YOUR-LINK-HERE
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## What it does
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+CampusAI helps students understand difficult course topics and summarize their lecture notes. It is a responsive website that works in the browser on phones and computers.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+## Current status
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This version is the complete user interface, running on demo data:
 
-## Learn More
+- Login and Sign Up pages with form validation
+- Dashboard with feature cards and recent activities
+- AI Chat screen (demo replies)
+- Note summary result screen with Save and Share
+- Profile page
+- Responsive navigation: bottom tabs on phones, side menu on computers
 
-To learn more about Next.js, take a look at the following resources:
+**Planned next:** Firebase Authentication, Firestore, Gemini AI integration, real note summarization, and file upload.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Built with
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Next.js (App Router) and JavaScript
+- CSS Modules with a shared theme (CSS variables)
+- React Icons
+- Deployed on Vercel
 
-## Deploy on Vercel
+## Project structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+    src/
+    ├── app/            Pages (each folder is a web address)
+    │   ├── login/
+    │   ├── signup/
+    │   └── (main)/     Pages that share the navigation
+    │       ├── dashboard/
+    │       ├── chat/
+    │       ├── notes/
+    │       └── profile/
+    └── components/     Reusable pieces (Button, Input, Card, ChatBubble, ...)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Run it locally
+
+    npm install
+    npm run dev
+
+Then open http://localhost:3000
+
+## Notes
+
+CampusAI was first started as a React Native (Expo) mobile app and was moved to a Next.js website. The original mobile version is kept in a separate repository under the tag `expo-version`.

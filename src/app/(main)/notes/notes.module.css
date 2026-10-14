@@ -1,0 +1,128 @@
+.page {
+  max-width: 800px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-white);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  margin-bottom: var(--space-md);
+}
+
+.headerTitle {
+  margin: 0;
+  font-size: var(--font-medium);
+}
+
+.iconButton {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--color-background);
+  color: var(--color-text-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.documentCard {
+  display: flex;
+  align-items: center;
+  background: var(--color-white);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  margin-bottom: var(--space-md);
+}
+
+.documentIcon {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: var(--space-md);
+}
+
+.documentLabel {
+  margin: 0;
+  font-size: var(--font-small);
+  color: var(--color-text-grey);
+}
+
+.documentName {
+  margin: 2px 0 0;
+  font-size: var(--font-medium);
+  font-weight: bold;
+}
+
+.pointsCard {
+  background: var(--color-white);
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  margin-bottom: var(--space-lg);
+}
+
+.pointsTitle {
+  margin: 0 0 var(--space-md);
+  font-size: var(--font-title);
+}
+
+.pointRow {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: var(--space-md);
+}
+
+.numberCircle {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: var(--font-body);
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: var(--space-md);
+}
+
+.pointText {
+  margin: 0;
+  font-size: var(--font-medium);
+  line-height: 1.5;
+}
+
+.notice {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  font-size: var(--font-body);
+  margin: 0 0 var(--space-md);
+}
+
+.buttons {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-md);
+}
+
+@media (min-width: 768px) {
+  .buttons {
+    grid-template-columns: 1fr 1fr;
+  }
+}
