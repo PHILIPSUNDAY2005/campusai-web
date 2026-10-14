@@ -1,0 +1,51 @@
+.card {
+  background: var(--color-white);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:hover {
+  background: var(--color-primary-light);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+}
+
+.iconCircle {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: var(--space-md);
+}
+
+.text {
+  flex: 1;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-medium);
+}
+
+.description {
+  margin: var(--space-xs) 0 0;
+  font-size: var(--font-body);
+  color: var(--color-text-grey);
+}
+
+.buttonBox {
+  margin-top: var(--space-md);
+}

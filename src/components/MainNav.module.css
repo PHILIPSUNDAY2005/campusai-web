@@ -1,0 +1,75 @@
+/* Phone first: a bar fixed at the bottom */
+.nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  background: var(--color-white);
+  border-top: 1px solid var(--color-border);
+}
+
+.brand {
+  display: none;
+}
+
+.links {
+  display: flex;
+  justify-content: space-around;
+}
+
+.link {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-sm) 0;
+  color: var(--color-text-grey);
+  text-decoration: none;
+  font-size: var(--font-small);
+}
+
+.active {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* Computers: a menu fixed on the left */
+@media (min-width: 768px) {
+  .nav {
+    top: 0;
+    right: auto;
+    width: 240px;
+    border-top: none;
+    border-right: 1px solid var(--color-border);
+    padding: var(--space-lg) var(--space-md);
+  }
+
+  .brand {
+    display: block;
+    font-size: var(--font-title);
+    font-weight: bold;
+    color: var(--color-primary);
+    margin-bottom: var(--space-lg);
+    padding-left: var(--space-sm);
+  }
+
+  .links {
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .link {
+    flex: none;
+    flex-direction: row;
+    gap: var(--space-md);
+    padding: var(--space-md);
+    border-radius: var(--radius-md);
+    font-size: var(--font-medium);
+  }
+
+  .active {
+    background: var(--color-primary-light);
+  }
+}

@@ -1,0 +1,19 @@
+.shell {
+  min-height: 100vh;
+}
+
+/* Phone: leave room for the bottom bar */
+.content {
+  padding: var(--space-lg) var(--space-md) 96px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Computer: leave room for the side menu */
+@media (min-width: 768px) {
+  .content {
+    margin-left: 240px;
+    max-width: none;
+    padding: var(--space-xl) var(--space-xl) var(--space-xl);
+  }
+}
