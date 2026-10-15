@@ -6,21 +6,10 @@ import { IoArrowBack, IoAttach, IoSend } from 'react-icons/io5';
 import ChatBubble from '../../../components/ChatBubble';
 import styles from './chat.module.css';
 
-// Dummy starting messages. Real AI answers come in a later phase.
 const startingMessages = [
   {
     id: 1,
     text: "Hello! Ask me anything about your courses, notes, or assignments. I'm here to help.",
-    isUser: false,
-  },
-  {
-    id: 2,
-    text: 'Explain Database Normalization in simple terms.',
-    isUser: true,
-  },
-  {
-    id: 3,
-    text: 'Database normalization is the process of organizing data in a database to reduce unnecessary duplication and improve data integrity.',
     isUser: false,
   },
 ];
@@ -29,36 +18,57 @@ export default function ChatPage() {
   const router = useRouter();
   const [messages, setMessages] = useState(startingMessages);
   const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
   const messagesRef = useRef(null);
 
-  // Scroll to the newest message whenever the list changes
+  // Scroll to the newest message whenever the list or loading state changes
   useEffect(() => {
     if (messagesRef.current) {
       messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, loading]);
 
-  const handleSend = (event) => {
+  const handleSend = async (event) => {
     event.preventDefault();
 
     const text = input.trim();
-    if (text === '') {
+    if (text === '' || loading) {
       return;
     }
 
     const userMessage = { id: Date.now(), text: text, isUser: true };
-    setMessages((old) => [...old, userMessage]);
-    setInput('');
+    const updatedMessages = [...messages, userMessage];
 
-    // Fake AI reply after 1 second. Gemini replaces this in a later phase.
-    setTimeout(() => {
-      const aiMessage = {
-        id: Date.now() + 1,
-        text: 'This is a demo reply. Real AI answers will appear here once Gemini is connected.',
-        isUser: false,
-      };
-      setMessages((old) => [...old, aiMessage]);
-    }, 1000);
+    setMessages(updatedMessages);
+    setInput('');
+    setLoading(true);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: updatedMessages }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Request failed');
+      }
+
+      setMessages((old) => [...old, { id: Date.now() + 1, text: data.reply, isUser: false }]);
+    } catch (error) {
+      setMessages((old) => [
+        ...old,
+        {
+          id: Date.now() + 1,
+          text: 'Sorry, I could not get an answer right now. Please try again in a moment.',
+          isUser: false,
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -86,6 +96,7 @@ export default function ChatPage() {
         {messages.map((message) => (
           <ChatBubble key={message.id} text={message.text} isUser={message.isUser} />
         ))}
+        {loading && <ChatBubble text="Thinking..." isUser={false} />}
       </div>
 
       {/* Input bar */}
@@ -105,7 +116,12 @@ export default function ChatPage() {
           value={input}
           onChange={(event) => setInput(event.target.value)}
         />
-        <button type="submit" className={styles.sendButton} aria-label="Send message">
+        <button
+          type="submit"
+          className={styles.sendButton}
+          aria-label="Send message"
+          disabled={loading}
+        >
           <IoSend size={18} />
         </button>
       </form>
