@@ -2,7 +2,7 @@
 
 An AI-powered campus assistant web app for students, built as a Level 300 Computer Science semester project.
 
-**Live demo:** https://campusai-web-something.vercel.app
+**Live demo:** https://campusai-web.vercel.app
 
 ## What it does
 
