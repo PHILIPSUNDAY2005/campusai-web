@@ -1,7 +1,11 @@
 import { GoogleGenAI } from '@google/genai';
 
+// Give the server up to 30 seconds (retries can take a while)
+export const maxDuration = 30;
+
 const MIN_LENGTH = 50;
 const MAX_LENGTH = 12000;
+const MAX_ATTEMPTS = 3;
 
 // The instructions that tell Gemini exactly how to answer
 const SYSTEM_INSTRUCTION =
@@ -10,6 +14,24 @@ const SYSTEM_INSTRUCTION =
   'First line: "Title: " followed by a short title of at most 6 words. ' +
   'Then write 4 to 6 key points, one per line, each one clear sentence. ' +
   'Do not add anything else.';
+
+// Wait for a number of milliseconds
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Is this error a short connection problem that is worth trying again?
+function isRetryable(error) {
+  const code = error && error.cause && error.cause.code;
+  if (['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN'].includes(code)) {
+    return true;
+  }
+  if (error && typeof error.message === 'string' && error.message.includes('fetch failed')) {
+    return true;
+  }
+  // 503 means Gemini is busy for a moment
+  return error && error.status === 503;
+}
 
 // Turns Gemini's text into { title, points }
 function parseSummary(raw) {
@@ -74,30 +96,51 @@ export async function POST(request) {
     );
   }
 
-  // 2. Ask Gemini to summarize
-  try {
-    const ai = new GoogleGenAI({ apiKey: apiKey });
-    const response = await ai.models.generateContent({
-      model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
-      contents: [{ role: 'user', parts: [{ text: 'Summarize these lecture notes:\n\n' + text }] }],
-      config: { systemInstruction: SYSTEM_INSTRUCTION },
-    });
+  // 2. Ask Gemini, trying again if the connection drops
+  const ai = new GoogleGenAI({ apiKey: apiKey });
+  let lastError = null;
 
-    const raw = response.text;
-    if (!raw) {
-      return Response.json({ error: 'The AI sent an empty answer.' }, { status: 502 });
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await ai.models.generateContent({
+        model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
+        contents: [
+          { role: 'user', parts: [{ text: 'Summarize these lecture notes:\n\n' + text }] },
+        ],
+        config: { systemInstruction: SYSTEM_INSTRUCTION },
+      });
+
+      const raw = response.text;
+      if (!raw) {
+        return Response.json({ error: 'The AI sent an empty answer.' }, { status: 502 });
+      }
+
+      const summary = parseSummary(raw);
+      if (summary.points.length === 0) {
+        return Response.json(
+          { error: 'The AI could not find key points. Please try again.' },
+          { status: 502 }
+        );
+      }
+
+      return Response.json(summary);
+    } catch (error) {
+      lastError = error;
+      console.error('Gemini error (attempt ' + attempt + ' of ' + MAX_ATTEMPTS + '):', error);
+
+      if (attempt < MAX_ATTEMPTS && isRetryable(error)) {
+        await sleep(1500);
+        continue;
+      }
+      break;
     }
-
-    const summary = parseSummary(raw);
-    if (summary.points.length === 0) {
-      return Response.json({ error: 'The AI could not find key points. Please try again.' }, { status: 502 });
-    }
-
-    return Response.json(summary);
-  } catch (error) {
-    // The full error appears in your terminal, never in the browser
-    console.error('Gemini error:', error);
-    const status = error && error.status === 429 ? 429 : 500;
-    return Response.json({ error: 'The AI could not summarize right now.' }, { status: status });
   }
+
+  // All attempts failed
+  const status = lastError && lastError.status === 429 ? 429 : 500;
+  const message =
+    status === 429
+      ? 'The AI is busy right now. Please wait a minute and try again.'
+      : 'The AI could not summarize right now. Please check your connection and try again.';
+  return Response.json({ error: message }, { status: status });
 }
