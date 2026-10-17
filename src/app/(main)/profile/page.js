@@ -12,6 +12,7 @@ import {
 import { auth } from '../../../lib/firebase';
 import useAuth from '../../../lib/useAuth';
 import Button from '../../../components/Button';
+import ThemeToggle from '../../../components/ThemeToggle';
 import styles from './profile.module.css';
 
 const options = [
@@ -55,6 +56,9 @@ export default function ProfilePage() {
         <p className={styles.userName}>{userName}</p>
         <p className={styles.userEmail}>{userEmail}</p>
       </div>
+
+      {/* Light, dark or system theme */}
+      <ThemeToggle />
 
       {/* Options */}
       {options.map((item) => {

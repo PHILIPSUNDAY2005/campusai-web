@@ -108,8 +108,8 @@
 }
 
 .markdown pre {
-  background: var(--color-text-dark);
-  color: var(--color-white);
+  background: var(--color-code-bg);
+  color: var(--color-code-text);
   padding: var(--space-md);
   border-radius: var(--radius-md);
   overflow-x: auto;

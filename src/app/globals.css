@@ -1,13 +1,16 @@
-/* Your theme, the web version of theme.js */
+/* Light theme (the default) */
 :root {
   --color-primary: #2563eb;
   --color-primary-light: #dbeafe;
-  --color-white: #ffffff;
+  --color-white: #ffffff; /* the "surface" colour: cards, bars, inputs */
   --color-background: #f8fafc;
   --color-text-dark: #0f172a;
   --color-text-grey: #64748b;
   --color-border: #e2e8f0;
   --color-error: #dc2626;
+
+  --color-code-bg: #0f172a;
+  --color-code-text: #f8fafc;
 
   --space-xs: 4px;
   --space-sm: 8px;
@@ -27,6 +30,27 @@
   --font-heading: 28px;
 
   --shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+
+  color-scheme: light;
+}
+
+/* Dark theme: same names, new values */
+:root[data-theme='dark'] {
+  --color-primary: #60a5fa;
+  --color-primary-light: #1e3a5f;
+  --color-white: #111a2e;
+  --color-background: #0b1220;
+  --color-text-dark: #e2e8f0;
+  --color-text-grey: #94a3b8;
+  --color-border: #243247;
+  --color-error: #f87171;
+
+  --color-code-bg: #060b16;
+  --color-code-text: #e2e8f0;
+
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+
+  color-scheme: dark;
 }
 
 * {
@@ -38,4 +62,11 @@ body {
   background: var(--color-background);
   color: var(--color-text-dark);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Inputs that have no style of their own follow the theme */
+input,
+textarea {
+  background-color: var(--color-white);
+  color: var(--color-text-dark);
 }
