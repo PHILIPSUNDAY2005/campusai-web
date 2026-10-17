@@ -2,6 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { auth } from '../../lib/firebase';
+import { getAuthErrorMessage } from '../../lib/authErrors';
 import AuthShell from '../../components/AuthShell';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
@@ -13,9 +16,14 @@ export default function SignUpPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (loading) {
+      return;
+    }
 
     if (
       fullName.trim() === '' ||
@@ -36,8 +44,21 @@ export default function SignUpPage() {
     }
 
     setError('');
-    // Firebase sign up will be added in a later phase
-    router.push('/login');
+    setLoading(true);
+
+    try {
+      // 1. Create the account in Firebase (this also signs the student in)
+      const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+
+      // 2. Save the student's full name on the account
+      await updateProfile(credential.user, { displayName: fullName.trim() });
+
+      router.push('/dashboard');
+    } catch (err) {
+      setError(getAuthErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -85,7 +106,7 @@ export default function SignUpPage() {
           <p style={{ color: 'var(--color-error)', fontSize: '14px', marginTop: 0 }}>{error}</p>
         )}
 
-        <Button title="Create Account" type="submit" />
+        <Button title={loading ? 'Creating account...' : 'Create Account'} type="submit" />
       </form>
     </AuthShell>
   );

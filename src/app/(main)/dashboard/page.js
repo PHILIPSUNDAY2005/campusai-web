@@ -10,6 +10,7 @@ import {
   IoChatbubbleEllipsesOutline,
   IoDocumentTextOutline,
 } from 'react-icons/io5';
+import useAuth from '../../../lib/useAuth';
 import FeatureCard from '../../../components/FeatureCard';
 import styles from './dashboard.module.css';
 
@@ -20,15 +21,27 @@ const recentActivities = [
   { id: 3, title: 'Data Structures', detail: 'AI Chat • 2 days ago', icon: IoChatbubbleEllipsesOutline },
 ];
 
+// Gets a first name to greet. Uses the saved name, or the start of the email.
+function getFirstName(user) {
+  if (user && user.displayName) {
+    return user.displayName.trim().split(' ')[0];
+  }
+  if (user && user.email) {
+    return user.email.split('@')[0];
+  }
+  return 'Student';
+}
+
 export default function DashboardPage() {
   const router = useRouter();
+  const { user } = useAuth();
 
   return (
     <div>
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerText}>
-          <h1 className={styles.greeting}>Hello, Student 👋</h1>
+          <h1 className={styles.greeting}>Welcome back, {getFirstName(user)} 👋</h1>
           <p className={styles.subGreeting}>What would you like to learn today?</p>
         </div>
         <button

@@ -1,18 +1,18 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { signOut } from 'firebase/auth';
 import {
   IoPersonOutline,
   IoNotificationsOutline,
   IoHelpCircleOutline,
   IoChevronForward,
 } from 'react-icons/io5';
+import { auth } from '../../../lib/firebase';
+import useAuth from '../../../lib/useAuth';
 import Button from '../../../components/Button';
 import styles from './profile.module.css';
-
-// Dummy data for now. Real user details come from Firebase later.
-const userName = 'Student';
-const userEmail = 'student@school.edu';
 
 const options = [
   { id: 1, title: 'Edit Profile', icon: IoPersonOutline },
@@ -22,6 +22,28 @@ const options = [
 
 export default function ProfilePage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  // The saved name, or the start of the email if no name was saved
+  const userName =
+    (user && user.displayName) || (user && user.email ? user.email.split('@')[0] : 'Student');
+  const userEmail = (user && user.email) || '';
+
+  const handleLogout = async () => {
+    if (loggingOut) {
+      return;
+    }
+    setLoggingOut(true);
+
+    try {
+      await signOut(auth);
+      router.replace('/login');
+    } catch (error) {
+      setLoggingOut(false);
+      alert('Could not log out. Please try again.');
+    }
+  };
 
   return (
     <div className={styles.page}>
@@ -29,7 +51,7 @@ export default function ProfilePage() {
 
       {/* User info */}
       <div className={styles.userCard}>
-        <div className={styles.avatar}>{userName.charAt(0)}</div>
+        <div className={styles.avatar}>{userName.charAt(0).toUpperCase()}</div>
         <p className={styles.userName}>{userName}</p>
         <p className={styles.userEmail}>{userEmail}</p>
       </div>
@@ -53,7 +75,11 @@ export default function ProfilePage() {
       })}
 
       <div className={styles.logout}>
-        <Button title="Log Out" variant="secondary" onClick={() => router.push('/login')} />
+        <Button
+          title={loggingOut ? 'Logging out...' : 'Log Out'}
+          variant="secondary"
+          onClick={handleLogout}
+        />
       </div>
     </div>
   );

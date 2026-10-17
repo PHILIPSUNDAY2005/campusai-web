@@ -2,6 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { signInWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '../../lib/firebase';
+import { getAuthErrorMessage } from '../../lib/authErrors';
 import AuthShell from '../../components/AuthShell';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
@@ -11,9 +14,15 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault(); // stops the browser from reloading the page
+
+    if (loading) {
+      return;
+    }
 
     if (email.trim() === '' || password === '') {
       setError('Please enter your email and password.');
@@ -21,8 +30,35 @@ export default function LoginPage() {
     }
 
     setError('');
-    // Firebase login will be added in a later phase
-    router.push('/dashboard');
+    setNotice('');
+    setLoading(true);
+
+    try {
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+      router.push('/dashboard');
+    } catch (err) {
+      setError(getAuthErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (email.trim() === '') {
+      setNotice('');
+      setError('Type your email in the box above first, then click "Forgot your password?".');
+      return;
+    }
+
+    setError('');
+
+    try {
+      await sendPasswordResetEmail(auth, email.trim());
+      setNotice('If an account exists for this email, a reset link has been sent. Check your inbox and spam folder.');
+    } catch (err) {
+      setNotice('');
+      setError(getAuthErrorMessage(err));
+    }
   };
 
   return (
@@ -54,7 +90,7 @@ export default function LoginPage() {
         <div style={{ textAlign: 'right', marginBottom: '24px' }}>
           <button
             type="button"
-            onClick={() => alert('Password reset will be added later.')}
+            onClick={handleForgotPassword}
             style={{
               background: 'none',
               border: 'none',
@@ -71,8 +107,11 @@ export default function LoginPage() {
         {error !== '' && (
           <p style={{ color: 'var(--color-error)', fontSize: '14px', marginTop: 0 }}>{error}</p>
         )}
+        {notice !== '' && (
+          <p style={{ color: 'var(--color-primary)', fontSize: '14px', marginTop: 0 }}>{notice}</p>
+        )}
 
-        <Button title="Log In" type="submit" />
+        <Button title={loading ? 'Logging in...' : 'Log In'} type="submit" />
       </form>
     </AuthShell>
   );
