@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
@@ -15,6 +16,7 @@ export default function SignUpPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -40,6 +42,10 @@ export default function SignUpPage() {
     }
     if (password !== confirmPassword) {
       setError('The two passwords do not match.');
+      return;
+    }
+    if (!agreed) {
+      setError('Please agree to the Terms and Conditions and Privacy Policy to continue.');
       return;
     }
 
@@ -101,6 +107,39 @@ export default function SignUpPage() {
           onChangeText={setConfirmPassword}
           isPassword
         />
+
+        {/* Terms and Conditions */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '16px' }}>
+          <input
+            id="terms"
+            type="checkbox"
+            checked={agreed}
+            onChange={(event) => setAgreed(event.target.checked)}
+            style={{ width: '20px', height: '20px', marginTop: '2px', accentColor: 'var(--color-primary)', flexShrink: 0 }}
+          />
+          <label
+            htmlFor="terms"
+            style={{ fontSize: '14px', lineHeight: 1.5, color: 'var(--color-text-grey)' }}
+          >
+            I agree to the{' '}
+            <Link
+              href="/terms"
+              target="_blank"
+              style={{ color: 'var(--color-primary)', fontWeight: 600 }}
+            >
+              Terms and Conditions
+            </Link>{' '}
+            and the{' '}
+            <Link
+              href="/privacy"
+              target="_blank"
+              style={{ color: 'var(--color-primary)', fontWeight: 600 }}
+            >
+              Privacy Policy
+            </Link>
+            .
+          </label>
+        </div>
 
         {error !== '' && (
           <p style={{ color: 'var(--color-error)', fontSize: '14px', marginTop: 0 }}>{error}</p>
