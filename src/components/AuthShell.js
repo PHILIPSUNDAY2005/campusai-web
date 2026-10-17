@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Logo from './Logo';
 import styles from './AuthShell.module.css';
 
 export default function AuthShell({
@@ -12,7 +13,9 @@ export default function AuthShell({
   return (
     <main className={styles.page}>
       <div className={styles.container}>
-        <div className={styles.logo}>C</div>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <Logo size={72} />
+        </div>
         <h1 className={styles.title}>{title}</h1>
         <p className={styles.tagline}>{tagline}</p>
 

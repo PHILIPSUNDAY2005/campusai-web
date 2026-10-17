@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import useAuth from '../lib/useAuth';
+import Logo from './Logo';
 
 // Shows its content only to logged-in students
 export default function AuthGate({ children }) {
@@ -17,9 +18,20 @@ export default function AuthGate({ children }) {
 
   if (loading || !user) {
     return (
-      <p style={{ textAlign: 'center', marginTop: '40vh', color: 'var(--color-text-grey)' }}>
-        Loading...
-      </p>
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '12px',
+          color: 'var(--color-text-grey)',
+        }}
+      >
+        <Logo size={56} />
+        <span>Loading...</span>
+      </div>
     );
   }
 

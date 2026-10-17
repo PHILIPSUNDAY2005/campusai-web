@@ -11,6 +11,7 @@ import {
   IoDocumentTextOutline,
 } from 'react-icons/io5';
 import useAuth from '../../../lib/useAuth';
+import Logo from '../../../components/Logo';
 import FeatureCard from '../../../components/FeatureCard';
 import styles from './dashboard.module.css';
 
@@ -38,6 +39,11 @@ export default function DashboardPage() {
 
   return (
     <div>
+      {/* Logo space (phones only; computers show the logo in the side menu) */}
+      <div className={styles.logoBar}>
+        <Logo size={44} showName />
+      </div>
+
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerText}>

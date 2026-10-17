@@ -12,6 +12,7 @@ import {
   IoPerson,
   IoPersonOutline,
 } from 'react-icons/io5';
+import Logo from './Logo';
 import styles from './MainNav.module.css';
 
 const tabs = [
@@ -26,7 +27,9 @@ export default function MainNav() {
 
   return (
     <nav className={styles.nav}>
-      <div className={styles.brand}>CampusAI</div>
+      <div className={styles.brand}>
+        <Logo size={40} showName />
+      </div>
       <div className={styles.links}>
         {tabs.map((tab) => {
           const isActive = pathname === tab.href;

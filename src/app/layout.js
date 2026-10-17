@@ -1,4 +1,5 @@
 import './globals.css';
+import SplashGate from '../components/SplashGate';
 
 export const metadata = {
   title: 'CampusAI',
@@ -13,7 +14,9 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <SplashGate>{children}</SplashGate>
+      </body>
     </html>
   );
 }

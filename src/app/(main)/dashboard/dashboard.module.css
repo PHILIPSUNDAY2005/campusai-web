@@ -1,3 +1,20 @@
+/* The logo space at the top of the Dashboard (phones) */
+.logoBar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: var(--space-md);
+  margin-bottom: var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Computers have the logo in the side menu already */
+@media (min-width: 768px) {
+  .logoBar {
+    display: none;
+  }
+}
+
 .header {
   display: flex;
   align-items: center;
