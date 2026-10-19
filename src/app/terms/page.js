@@ -1,4 +1,4 @@
-import LegalPage from '../../components/LegalPage';
+﻿import LegalPage from '../../components/LegalPage';
 
 export const metadata = {
   title: 'Terms and Conditions | CampusAI',
