@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { IoArrowBack, IoShareSocialOutline, IoDocumentTextOutline } from 'react-icons/io5';
-import { auth } from '../../../lib/firebase';
+import { auth, db } from '../../../lib/firebase';
 import Button from '../../../components/Button';
 import styles from './notes.module.css';
 
@@ -15,6 +16,8 @@ export default function NotesPage() {
   const [notesText, setNotesText] = useState('');
   const [result, setResult] = useState(null); // { title, points } after summarizing
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -36,6 +39,7 @@ export default function NotesPage() {
 
     setError('');
     setNotice('');
+    setSaved(false);
     setLoading(true);
 
     try {
@@ -101,9 +105,33 @@ export default function NotesPage() {
     }
   };
 
-  const handleSave = () => {
-    // Saving to Firestore will be added in a later phase
-    setNotice('Your summary was saved (demo).');
+  // Saves the summary under this student's own account in Firestore
+  const handleSave = async () => {
+    if (saving || saved || !result) {
+      return;
+    }
+    if (!auth.currentUser) {
+      setNotice('Please log in again.');
+      return;
+    }
+
+    setSaving(true);
+    setNotice('');
+
+    try {
+      await addDoc(collection(db, 'users', auth.currentUser.uid, 'summaries'), {
+        title: result.title.slice(0, 120),
+        points: result.points.slice(0, 10),
+        createdAt: serverTimestamp(),
+      });
+      setSaved(true);
+      setNotice('Summary saved. You can find it under Recent Activities on your Dashboard.');
+    } catch (err) {
+      console.error('Save error:', err);
+      setNotice('Could not save the summary. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSummarizeAnother = () => {
@@ -111,6 +139,7 @@ export default function NotesPage() {
     setNotesText('');
     setError('');
     setNotice('');
+    setSaved(false);
   };
 
   return (
@@ -187,7 +216,10 @@ export default function NotesPage() {
           {notice !== '' && <p className={styles.notice}>{notice}</p>}
 
           <div className={styles.buttons}>
-            <Button title="Save Summary" onClick={handleSave} />
+            <Button
+              title={saved ? 'Saved' : saving ? 'Saving...' : 'Save Summary'}
+              onClick={handleSave}
+            />
             <Button title="Share" variant="secondary" onClick={handleShare} />
             <Button
               title="Summarize Another Note"

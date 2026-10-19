@@ -1,26 +1,23 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 import {
   IoNotificationsOutline,
   IoPersonOutline,
   IoSparklesOutline,
   IoReaderOutline,
   IoCloudUploadOutline,
-  IoChatbubbleEllipsesOutline,
   IoDocumentTextOutline,
+  IoChevronDown,
+  IoChevronUp,
 } from 'react-icons/io5';
+import { db } from '../../../lib/firebase';
 import useAuth from '../../../lib/useAuth';
 import Logo from '../../../components/Logo';
 import FeatureCard from '../../../components/FeatureCard';
 import styles from './dashboard.module.css';
-
-// Dummy data for now. Real activities will come from Firestore later.
-const recentActivities = [
-  { id: 1, title: 'Database Normalization', detail: 'AI Chat • Today', icon: IoChatbubbleEllipsesOutline },
-  { id: 2, title: 'Operating Systems Notes', detail: 'Summary • Yesterday', icon: IoDocumentTextOutline },
-  { id: 3, title: 'Data Structures', detail: 'AI Chat • 2 days ago', icon: IoChatbubbleEllipsesOutline },
-];
 
 // Gets a first name to greet. Uses the saved name, or the start of the email.
 function getFirstName(user) {
@@ -33,9 +30,78 @@ function getFirstName(user) {
   return 'Student';
 }
 
+// Turns a date into "Just now", "Today", "Yesterday" or a short date
+function describeWhen(date) {
+  if (!date) {
+    return 'Just now';
+  }
+
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfDate = new Date(date);
+  startOfDate.setHours(0, 0, 0, 0);
+  const days = Math.round((startOfToday - startOfDate) / 86400000);
+
+  if (days <= 0) {
+    return 'Today';
+  }
+  if (days === 1) {
+    return 'Yesterday';
+  }
+  if (days < 7) {
+    return days + ' days ago';
+  }
+  return date.toLocaleDateString();
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const { user } = useAuth();
+
+  const [activities, setActivities] = useState([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
+  const [activitiesError, setActivitiesError] = useState(false);
+  const [openId, setOpenId] = useState(null); // which summary is expanded
+
+  // Listen to this student's latest saved summaries
+  useEffect(() => {
+    if (!user) {
+      return;
+    }
+
+    const latest = query(
+      collection(db, 'users', user.uid, 'summaries'),
+      orderBy('createdAt', 'desc'),
+      limit(5)
+    );
+
+    const unsubscribe = onSnapshot(
+      latest,
+      (snapshot) => {
+        const items = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          const date = data.createdAt ? data.createdAt.toDate() : null;
+          return {
+            id: doc.id,
+            title: data.title,
+            points: Array.isArray(data.points) ? data.points : [],
+            detail: 'Summary • ' + describeWhen(date),
+          };
+        });
+        setActivities(items);
+        setActivitiesError(false);
+        setActivitiesLoading(false);
+      },
+      (error) => {
+        console.error('Activities error:', error);
+        setActivitiesError(true);
+        setActivitiesLoading(false);
+      }
+    );
+
+    // Stop listening when the page is closed
+    return () => unsubscribe();
+  }, [user]);
 
   return (
     <div>
@@ -91,17 +157,48 @@ export default function DashboardPage() {
 
       {/* Recent activities */}
       <h2 className={styles.sectionTitle}>Recent Activities</h2>
-      {recentActivities.map((item) => {
-        const Icon = item.icon;
+
+      {activitiesLoading && <p className={styles.emptyText}>Loading your activities...</p>}
+
+      {!activitiesLoading && activitiesError && (
+        <p className={styles.emptyText}>Could not load your activities right now.</p>
+      )}
+
+      {!activitiesLoading && !activitiesError && activities.length === 0 && (
+        <p className={styles.emptyText}>
+          Nothing here yet. Summarize some notes and save the result, and it will show up here.
+        </p>
+      )}
+
+      {activities.map((item) => {
+        const isOpen = openId === item.id;
+        const Chevron = isOpen ? IoChevronUp : IoChevronDown;
+
         return (
-          <div key={item.id} className={styles.activityRow}>
-            <div className={styles.activityIcon}>
-              <Icon size={20} />
-            </div>
-            <div>
-              <p className={styles.activityTitle}>{item.title}</p>
-              <p className={styles.activityDetail}>{item.detail}</p>
-            </div>
+          <div key={item.id} className={styles.activityCard}>
+            <button
+              type="button"
+              className={styles.activityRow}
+              aria-expanded={isOpen}
+              onClick={() => setOpenId(isOpen ? null : item.id)}
+            >
+              <span className={styles.activityIcon}>
+                <IoDocumentTextOutline size={20} />
+              </span>
+              <span className={styles.activityText}>
+                <span className={styles.activityTitle}>{item.title}</span>
+                <span className={styles.activityDetail}>{item.detail}</span>
+              </span>
+              <Chevron size={20} />
+            </button>
+
+            {isOpen && (
+              <ol className={styles.activityPoints}>
+                {item.points.map((point, index) => (
+                  <li key={index}>{point}</li>
+                ))}
+              </ol>
+            )}
           </div>
         );
       })}

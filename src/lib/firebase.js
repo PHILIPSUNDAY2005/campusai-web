@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 
 // These values come from your .env.local file
 const firebaseConfig = {
@@ -14,5 +15,6 @@ const firebaseConfig = {
 // Start Firebase only once, even if this file is loaded many times
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// "auth" is the tool every page will use for sign up, log in and log out
+// "auth" handles sign up, log in and log out. "db" is the database.
 export const auth = getAuth(app);
+export const db = getFirestore(app);
