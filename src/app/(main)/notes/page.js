@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { IoArrowBack, IoShareSocialOutline, IoDocumentTextOutline } from 'react-icons/io5';
+import { auth } from '../../../lib/firebase';
 import Button from '../../../components/Button';
 import styles from './notes.module.css';
 
@@ -18,6 +19,10 @@ export default function NotesPage() {
   const [notice, setNotice] = useState('');
 
   const handleSummarize = async () => {
+    if (loading) {
+      return;
+    }
+
     const text = notesText.trim();
 
     if (text.length < MIN_LENGTH) {
@@ -34,13 +39,23 @@ export default function NotesPage() {
     setLoading(true);
 
     try {
+      if (!auth.currentUser) {
+        throw new Error('Please log in again.');
+      }
+
+      // The server needs the student's login token to answer
+      const token = await auth.currentUser.getIdToken();
+
       const response = await fetch('/api/summarize', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + token,
+        },
         body: JSON.stringify({ text: text }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         throw new Error(data.error || 'Request failed');
@@ -48,7 +63,11 @@ export default function NotesPage() {
 
       setResult({ title: data.title, points: data.points });
     } catch (err) {
-      setError(err.message || 'Something went wrong. Please try again.');
+      setError(
+        err && err.message && err.message !== 'Failed to fetch'
+          ? err.message
+          : 'Something went wrong. Please check your connection and try again.'
+      );
     } finally {
       setLoading(false);
     }

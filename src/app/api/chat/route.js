@@ -1,4 +1,9 @@
 import { GoogleGenAI } from '@google/genai';
+import { getUserFromRequest } from '../../../lib/serverAuth';
+import { checkRateLimit } from '../../../lib/rateLimit';
+
+const CHAT_LIMIT = 30; // questions per student
+const CHAT_WINDOW_MS = 10 * 60 * 1000; // per 10 minutes
 
 // The instructions that tell Gemini how to teach and how to format answers
 const SYSTEM_INSTRUCTION = [
@@ -34,12 +39,21 @@ const SYSTEM_INSTRUCTION = [
 ].join('\n');
 
 export async function POST(request) {
+  // 1. Only logged-in students with a verified email may use the AI
+  const caller = await getUserFromRequest(request);
+  if (!caller) {
+    return Response.json({ error: 'Please log in again.' }, { status: 401 });
+  }
+  if (!caller.emailVerified) {
+    return Response.json({ error: 'Please verify your email first.' }, { status: 403 });
+  }
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return Response.json({ error: 'The AI key is not set on the server.' }, { status: 500 });
   }
 
-  // 1. Read the conversation sent by the chat page
+  // 2. Read the conversation sent by the chat page
   let body;
   try {
     body = await request.json();
@@ -49,7 +63,7 @@ export async function POST(request) {
 
   const messages = Array.isArray(body.messages) ? body.messages : [];
 
-  // 2. Convert to Gemini's format. Keep only the last 12 messages to stay small.
+  // 3. Convert to Gemini's format. Keep only the last 12 messages to stay small.
   let contents = messages
     .slice(-12)
     .filter((m) => typeof m.text === 'string' && m.text.trim() !== '')
@@ -67,7 +81,24 @@ export async function POST(request) {
     return Response.json({ error: 'Please send a question.' }, { status: 400 });
   }
 
-  // 3. Ask Gemini
+  // 4. Is this student asking too much?
+  const limit = await checkRateLimit(caller.uid, 'chat', CHAT_LIMIT, CHAT_WINDOW_MS);
+  if (!limit.allowed) {
+    const minutes = Math.max(1, Math.ceil(limit.retryAfterSeconds / 60));
+    return Response.json(
+      {
+        error:
+          'You have asked a lot of questions in a short time. Please wait about ' +
+          minutes +
+          ' minute' +
+          (minutes === 1 ? '' : 's') +
+          ' and try again.',
+      },
+      { status: 429 }
+    );
+  }
+
+  // 5. Ask Gemini
   try {
     const ai = new GoogleGenAI({ apiKey: apiKey });
     const response = await ai.models.generateContent({

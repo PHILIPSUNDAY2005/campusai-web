@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { IoArrowBack, IoAttach, IoSend } from 'react-icons/io5';
+import { auth } from '../../../lib/firebase';
 import ChatBubble from '../../../components/ChatBubble';
 import styles from './chat.module.css';
 
@@ -44,13 +45,23 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
+      if (!auth.currentUser) {
+        throw new Error('Please log in again.');
+      }
+
+      // The server needs the student's login token to answer
+      const token = await auth.currentUser.getIdToken();
+
       const response = await fetch('/api/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + token,
+        },
         body: JSON.stringify({ messages: updatedMessages }),
       });
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
         throw new Error(data.error || 'Request failed');
@@ -62,7 +73,10 @@ export default function ChatPage() {
         ...old,
         {
           id: Date.now() + 1,
-          text: 'Sorry, I could not get an answer right now. Please try again in a moment.',
+          text:
+            error && error.message && error.message !== 'Failed to fetch'
+              ? error.message
+              : 'Sorry, I could not get an answer right now. Please check your connection and try again.',
           isUser: false,
         },
       ]);
