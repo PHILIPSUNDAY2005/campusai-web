@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Logo from './Logo';
+import Footer from './Footer';
 import styles from './AuthShell.module.css';
 
 export default function AuthShell({
@@ -27,6 +28,8 @@ export default function AuthShell({
             {footerLinkText}
           </Link>
         </p>
+
+        <Footer />
       </div>
     </main>
   );
