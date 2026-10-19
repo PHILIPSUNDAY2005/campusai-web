@@ -16,7 +16,7 @@ export default function Footer() {
     <footer className={styles.footer}>
       <p className={styles.brand}>CampusAI &middot; Your AI Study Assistant</p>
       <p className={styles.line}>
-        Built by Philip Sunday &middot; Level 300 Computer Science &middot; Riverdale School of
+        Built by Bayode Philip Sunday &middot; Level 300 Computer Science &middot; Riverdale School of
         Management Science and Technology (RSMST)
       </p>
       <p className={styles.links}>

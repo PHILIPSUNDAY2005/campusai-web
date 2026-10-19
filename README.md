@@ -4,7 +4,7 @@ An AI-powered study assistant for university students, built as a Level 300 Comp
 
 **Live demo:** https://campusai-web.vercel.app
 
-Built by Philip Sunday.
+Built by Bayode Philip Sunday.
 
 ## What it does
 

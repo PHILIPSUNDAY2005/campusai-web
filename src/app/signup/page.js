@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   createUserWithEmailAndPassword,
+  sendEmailVerification,
   signInWithEmailAndPassword,
   updateProfile,
 } from 'firebase/auth';
@@ -13,23 +14,6 @@ import { getAuthErrorMessage } from '../../lib/authErrors';
 import AuthShell from '../../components/AuthShell';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
-
-// Asks our server to email a code. Never throws: if it fails, the student
-// can press "Send me a code" on the verify page.
-async function requestVerificationCode(firebaseUser) {
-  try {
-    const token = await firebaseUser.getIdToken();
-    const response = await fetch('/api/verification/send', {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + token },
-    });
-    if (response.ok) {
-      sessionStorage.setItem('campusai-code-sent', 'yes');
-    }
-  } catch (err) {
-    console.error('Sending the code failed:', err);
-  }
-}
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -80,8 +64,14 @@ export default function SignUpPage() {
       // 2. Save the student's full name on the account
       await updateProfile(credential.user, { displayName: fullName.trim() });
 
-      // 3. Ask our server to email a 6-digit code
-      await requestVerificationCode(credential.user);
+      // 3. Email a verification link. If this fails, the student can press
+      //    "Send me the link" on the next page, so we do not stop here.
+      try {
+        await sendEmailVerification(credential.user);
+        sessionStorage.setItem('campusai-link-sent', 'yes');
+      } catch (mailError) {
+        console.error('Verification email failed:', mailError);
+      }
 
       router.push('/verify-email');
     } catch (err) {
@@ -94,12 +84,7 @@ export default function SignUpPage() {
             await updateProfile(credential.user, { displayName: fullName.trim() });
           }
 
-          if (credential.user.emailVerified) {
-            router.push('/dashboard');
-          } else {
-            await requestVerificationCode(credential.user);
-            router.push('/verify-email');
-          }
+          router.push(credential.user.emailVerified ? '/dashboard' : '/verify-email');
           return;
         } catch (signInError) {
           setError(
