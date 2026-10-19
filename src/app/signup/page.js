@@ -59,7 +59,22 @@ export default function SignUpPage() {
       // 2. Save the student's full name on the account
       await updateProfile(credential.user, { displayName: fullName.trim() });
 
-      router.push('/dashboard');
+      // 3. Ask our server to email a 6-digit code. If this fails, the student
+      //    can press "Send me a code" on the next page, so we do not stop here.
+      try {
+        const token = await credential.user.getIdToken();
+        const response = await fetch('/api/verification/send', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + token },
+        });
+        if (response.ok) {
+          sessionStorage.setItem('campusai-code-sent', 'yes');
+        }
+      } catch (sendError) {
+        console.error('Sending the code failed:', sendError);
+      }
+
+      router.push('/verify-email');
     } catch (err) {
       setError(getAuthErrorMessage(err));
     } finally {
