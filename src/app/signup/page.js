@@ -3,12 +3,33 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import { getAuthErrorMessage } from '../../lib/authErrors';
 import AuthShell from '../../components/AuthShell';
 import Input from '../../components/Input';
 import Button from '../../components/Button';
+
+// Asks our server to email a code. Never throws: if it fails, the student
+// can press "Send me a code" on the verify page.
+async function requestVerificationCode(firebaseUser) {
+  try {
+    const token = await firebaseUser.getIdToken();
+    const response = await fetch('/api/verification/send', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    if (response.ok) {
+      sessionStorage.setItem('campusai-code-sent', 'yes');
+    }
+  } catch (err) {
+    console.error('Sending the code failed:', err);
+  }
+}
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -59,24 +80,36 @@ export default function SignUpPage() {
       // 2. Save the student's full name on the account
       await updateProfile(credential.user, { displayName: fullName.trim() });
 
-      // 3. Ask our server to email a 6-digit code. If this fails, the student
-      //    can press "Send me a code" on the next page, so we do not stop here.
-      try {
-        const token = await credential.user.getIdToken();
-        const response = await fetch('/api/verification/send', {
-          method: 'POST',
-          headers: { Authorization: 'Bearer ' + token },
-        });
-        if (response.ok) {
-          sessionStorage.setItem('campusai-code-sent', 'yes');
-        }
-      } catch (sendError) {
-        console.error('Sending the code failed:', sendError);
-      }
+      // 3. Ask our server to email a 6-digit code
+      await requestVerificationCode(credential.user);
 
       router.push('/verify-email');
     } catch (err) {
-      setError(getAuthErrorMessage(err));
+      if (err && err.code === 'auth/email-already-in-use') {
+        // The account was started before. If the password is right, carry on from there.
+        try {
+          const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
+
+          if (!credential.user.displayName) {
+            await updateProfile(credential.user, { displayName: fullName.trim() });
+          }
+
+          if (credential.user.emailVerified) {
+            router.push('/dashboard');
+          } else {
+            await requestVerificationCode(credential.user);
+            router.push('/verify-email');
+          }
+          return;
+        } catch (signInError) {
+          setError(
+            'An account with this email already exists, and that password does not match it. ' +
+              'Log in with your password, or use "Forgot your password?" on the Login page.'
+          );
+        }
+      } else {
+        setError(getAuthErrorMessage(err));
+      }
     } finally {
       setLoading(false);
     }

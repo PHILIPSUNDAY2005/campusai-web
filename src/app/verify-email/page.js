@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signOut } from 'firebase/auth';
+import { sendEmailVerification, signOut } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
 import useAuth from '../../lib/useAuth';
+import { getAuthErrorMessage } from '../../lib/authErrors';
 import AuthShell from '../../components/AuthShell';
 import Button from '../../components/Button';
 import CodeInput from '../../components/CodeInput';
@@ -18,6 +19,8 @@ export default function VerifyEmailPage() {
 
   const [code, setCode] = useState('');
   const [codeSent, setCodeSent] = useState(false);
+  const [linkSent, setLinkSent] = useState(false);
+  const [showLinkOption, setShowLinkOption] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [checking, setChecking] = useState(false);
@@ -57,6 +60,29 @@ export default function VerifyEmailPage() {
     return () => clearTimeout(timer);
   }, [secondsLeft]);
 
+  // After a verification link was emailed, check every 4 seconds if it was clicked
+  useEffect(() => {
+    if (!linkSent) {
+      return;
+    }
+    const timer = setInterval(async () => {
+      try {
+        if (!auth.currentUser) {
+          return;
+        }
+        await auth.currentUser.reload();
+        if (auth.currentUser.emailVerified) {
+          // Get a fresh login token that says "verified"
+          await auth.currentUser.getIdToken(true);
+          router.replace('/dashboard');
+        }
+      } catch (err) {
+        // A short network problem. We try again on the next round.
+      }
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [linkSent, router]);
+
   // Asks our server to email a code
   const requestCode = async () => {
     if (sending || secondsLeft > 0 || !auth.currentUser) {
@@ -94,11 +120,38 @@ export default function VerifyEmailPage() {
         setCodeSent(true);
         setSecondsLeft(data.secondsLeft);
         setNotice('A code was sent a moment ago. Check your inbox and spam folder.');
+      } else if (response.status === 502) {
+        // Our email service failed. Offer the backup: a link sent by Firebase.
+        setShowLinkOption(true);
+        setError('We could not email the code right now. You can use the verification link instead.');
       } else {
         setError(data.error || 'Could not send the code. Please try again.');
       }
     } catch (err) {
       setError('Network problem. Please check your connection and try again.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Backup: Firebase emails a verification link
+  const requestLink = async () => {
+    if (sending || !auth.currentUser) {
+      return;
+    }
+
+    setError('');
+    setNotice('');
+    setSending(true);
+
+    try {
+      await sendEmailVerification(auth.currentUser);
+      setLinkSent(true);
+      setNotice(
+        'We sent a verification link to your email. Click it, then come back to this page. Check your spam folder too.'
+      );
+    } catch (err) {
+      setError(getAuthErrorMessage(err));
     } finally {
       setSending(false);
     }
@@ -208,6 +261,13 @@ export default function VerifyEmailPage() {
       <div style={{ display: 'grid', gap: '12px' }}>
         <Button title={checking ? 'Checking...' : 'Verify'} onClick={handleVerify} />
         <Button title={resendLabel} variant="secondary" onClick={requestCode} />
+        {showLinkOption && (
+          <Button
+            title={linkSent ? 'Waiting for you to click the link...' : 'Email me a verification link instead'}
+            variant="secondary"
+            onClick={requestLink}
+          />
+        )}
         <Button title="Log Out" variant="secondary" onClick={handleLogout} />
       </div>
     </AuthShell>
