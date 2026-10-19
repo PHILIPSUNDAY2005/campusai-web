@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
-import { getUserFromRequest } from '../../../lib/serverAuth';
-import { checkRateLimit } from '../../../lib/rateLimit';
+import { getUserFromRequest } from '../../../../lib/serverAuth';
+import { checkRateLimit } from '../../../../lib/rateLimit';
 
 // Give the server up to 30 seconds (retries can take a while)
 export const maxDuration = 30;
