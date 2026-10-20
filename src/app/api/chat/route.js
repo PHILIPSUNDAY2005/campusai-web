@@ -1,4 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
+﻿import { GoogleGenAI } from '@google/genai';
 import { getUserFromRequest } from '../../../lib/serverAuth';
 import { checkRateLimit } from '../../../lib/rateLimit';
 

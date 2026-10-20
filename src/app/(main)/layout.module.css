@@ -1,19 +1,44 @@
+﻿/* Phones and tablets: menu bar on top, then content, then footer */
 .shell {
   min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Phone: leave room for the bottom bar */
 .content {
-  padding: var(--space-lg) var(--space-md) 96px;
-  max-width: 900px;
-  margin: 0 auto;
+  flex: 1 0 auto;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 16px;
+  overflow-wrap: anywhere;
 }
 
-/* Computer: leave room for the side menu */
+/* Laptops: menu column on the left, content and footer on the right */
 @media (min-width: 768px) {
+  .shell {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    grid-template-rows: 1fr auto;
+  }
+
+  .shell > :first-child {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: start;
+  }
+
   .content {
-    margin-left: 240px;
-    max-width: none;
-    padding: var(--space-xl) var(--space-xl) var(--space-xl);
+    grid-column: 2;
+    grid-row: 1;
+    padding: 28px 32px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .shell > footer {
+    grid-column: 2;
+    grid-row: 2;
   }
 }

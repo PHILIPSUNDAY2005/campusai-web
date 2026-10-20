@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -85,7 +85,7 @@ export default function DashboardPage() {
             id: doc.id,
             title: data.title,
             points: Array.isArray(data.points) ? data.points : [],
-            detail: 'Summary • ' + describeWhen(date),
+            detail: 'Summary \u2022 ' + describeWhen(date),
           };
         });
         setActivities(items);
@@ -113,7 +113,9 @@ export default function DashboardPage() {
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerText}>
-          <h1 className={styles.greeting}>Welcome back, {getFirstName(user)} 👋</h1>
+          <h1 className={styles.greeting}>
+            Welcome back, {getFirstName(user)} {'\uD83D\uDC4B'}
+          </h1>
           <p className={styles.subGreeting}>What would you like to learn today?</p>
         </div>
         <button
@@ -150,8 +152,8 @@ export default function DashboardPage() {
         <FeatureCard
           icon={IoCloudUploadOutline}
           title="Upload Notes"
-          description="Upload a document later"
-          onClick={() => alert('Upload Notes will be added in a later phase.')}
+          description="Upload a photo, PDF or text file of your notes"
+          onClick={() => router.push('/upload')}
         />
       </div>
 

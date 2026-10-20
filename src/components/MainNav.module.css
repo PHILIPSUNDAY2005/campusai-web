@@ -1,12 +1,10 @@
-/* Phone first: a bar fixed at the bottom */
+﻿/* Phones and tablets: a normal bar at the top of the page, not fixed to the bottom */
 .nav {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: sticky;
+  top: 0;
   z-index: 10;
   background: var(--color-white);
-  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .brand {
@@ -20,11 +18,14 @@
 
 .link {
   flex: 1;
+  min-width: 0;
+  min-height: 48px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 2px;
-  padding: var(--space-sm) 0;
+  padding: 6px 0;
   color: var(--color-text-grey);
   text-decoration: none;
   font-size: var(--font-small);
@@ -35,34 +36,35 @@
   font-weight: 600;
 }
 
-/* Computers: a menu fixed on the left */
+/* Laptops: a menu column that stays in view while the page scrolls beside it */
 @media (min-width: 768px) {
   .nav {
     top: 0;
-    right: auto;
-    width: 240px;
-    border-top: none;
+    height: 100vh;
+    height: 100dvh;
+    overflow-y: auto;
+    border-bottom: none;
     border-right: 1px solid var(--color-border);
     padding: var(--space-lg) var(--space-md);
+    box-sizing: border-box;
   }
 
   .brand {
     display: block;
-    font-size: var(--font-title);
-    font-weight: bold;
-    color: var(--color-primary);
     margin-bottom: var(--space-lg);
     padding-left: var(--space-sm);
   }
 
   .links {
     flex-direction: column;
+    justify-content: flex-start;
     gap: var(--space-xs);
   }
 
   .link {
     flex: none;
     flex-direction: row;
+    justify-content: flex-start;
     gap: var(--space-md);
     padding: var(--space-md);
     border-radius: var(--radius-md);
