@@ -1,9 +1,72 @@
-﻿import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
+import { FieldValue } from 'firebase-admin/firestore';
 import { getUserFromRequest } from '../../../lib/serverAuth';
+import { getAdmin } from '../../../lib/firebaseAdmin';
 import { checkRateLimit } from '../../../lib/rateLimit';
 
 const CHAT_LIMIT = 30; // questions per student
 const CHAT_WINDOW_MS = 10 * 60 * 1000; // per 10 minutes
+
+const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const MAX_IMAGE_CHARS = 3000000; // about 2.2 MB of picture (the hosting limit is about 4.5 MB)
+const MAX_SAVED_MESSAGES = 40;
+const CHAT_ID_PATTERN = /^[A-Za-z0-9]{8,40}$/;
+
+// Checks the first bytes, so a renamed file cannot pretend to be a picture
+function imageMatches(type, bytes) {
+  if (type === 'image/jpeg') {
+    return bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  }
+  if (type === 'image/png') {
+    return bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+  }
+  if (type === 'image/webp') {
+    const head = Buffer.from(bytes.slice(0, 12)).toString('latin1');
+    return head.startsWith('RIFF') && head.slice(8, 12) === 'WEBP';
+  }
+  return false;
+}
+
+// Saves the conversation under this student's own account.
+// Returns the chat id, or null if saving failed (the answer is still shown).
+async function saveChat(uid, chatId, messages, reply) {
+  try {
+    const { adminDb } = getAdmin();
+    const saved = messages
+      .filter((m) => m && typeof m.text === 'string' && m.text.trim() !== '')
+      .map((m) => ({
+        id: typeof m.id === 'number' ? m.id : Date.now(),
+        text: m.text.slice(0, 8000),
+        isUser: m.isUser === true,
+      }));
+    saved.push({ id: Date.now() + 1, text: reply.slice(0, 8000), isUser: false });
+    const recent = saved.slice(-MAX_SAVED_MESSAGES);
+
+    const chats = adminDb.collection('users').doc(uid).collection('chats');
+
+    if (typeof chatId === 'string' && CHAT_ID_PATTERN.test(chatId)) {
+      await chats.doc(chatId).set(
+        { messages: recent, updatedAt: FieldValue.serverTimestamp() },
+        { merge: true }
+      );
+      return chatId;
+    }
+
+    const firstQuestion = saved.find((m) => m.isUser);
+    const title = firstQuestion ? firstQuestion.text.replace(/\s+/g, ' ').slice(0, 60) : 'New chat';
+    const ref = chats.doc();
+    await ref.set({
+      title: title,
+      messages: recent,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    return ref.id;
+  } catch (error) {
+    console.error('Chat save error:', error);
+    return null;
+  }
+}
 
 // The instructions that tell Gemini how to teach and how to format answers
 const SYSTEM_INSTRUCTION = [
@@ -81,6 +144,25 @@ export async function POST(request) {
     return Response.json({ error: 'Please send a question.' }, { status: 400 });
   }
 
+  // 3b. A photo may be attached to the newest question
+  if (body.image) {
+    const image = body.image;
+    if (typeof image.data !== 'string' || !IMAGE_TYPES.includes(image.mimeType)) {
+      return Response.json({ error: 'Please attach a JPG, PNG or WebP photo.' }, { status: 400 });
+    }
+    if (image.data.length > MAX_IMAGE_CHARS) {
+      return Response.json({ error: 'That photo is too big. Please try a smaller one.' }, { status: 413 });
+    }
+    const imageBytes = new Uint8Array(Buffer.from(image.data, 'base64'));
+    if (!imageMatches(image.mimeType, imageBytes)) {
+      return Response.json({ error: 'That file does not look like a real photo.' }, { status: 400 });
+    }
+    const newest = contents[contents.length - 1];
+    if (newest.role === 'user') {
+      newest.parts.push({ inlineData: { mimeType: image.mimeType, data: image.data } });
+    }
+  }
+
   // 4. Is this student asking too much?
   const limit = await checkRateLimit(caller.uid, 'chat', CHAT_LIMIT, CHAT_WINDOW_MS);
   if (!limit.allowed) {
@@ -112,7 +194,10 @@ export async function POST(request) {
       return Response.json({ error: 'The AI sent an empty answer.' }, { status: 502 });
     }
 
-    return Response.json({ reply: reply });
+    // 6. Save the conversation so the student can open it again later
+    const savedChatId = await saveChat(caller.uid, body.chatId, messages, reply);
+
+    return Response.json({ reply: reply, chatId: savedChatId });
   } catch (error) {
     // The full error is shown in your terminal, never sent to the browser
     console.error('Gemini error:', error);

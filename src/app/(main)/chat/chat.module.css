@@ -15,9 +15,15 @@
   box-shadow: var(--shadow);
 }
 
+.headerText {
+  flex: 1;
+  min-width: 0;
+}
+
 .backButton {
   width: 40px;
   height: 40px;
+  flex-shrink: 0;
   border: none;
   border-radius: var(--radius-full);
   background: var(--color-background);
@@ -26,6 +32,11 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
+}
+
+.activeButton {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
 }
 
 .title {
@@ -55,6 +66,128 @@
   padding: var(--space-md) 0;
 }
 
+/* Previous conversations */
+.historyPanel {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-md) 0;
+}
+
+.historyHeading {
+  margin: 0 0 var(--space-md);
+  font-size: var(--font-medium);
+}
+
+.historyNote {
+  margin: 0;
+  font-size: var(--font-body);
+  color: var(--color-text-grey);
+}
+
+.historyError {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--font-body);
+  color: var(--color-error);
+}
+
+.historyItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--color-white);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  margin-bottom: var(--space-sm);
+}
+
+.historyOpen {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  border: none;
+  background: none;
+  padding: var(--space-md);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.historyTitle {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-medium);
+  font-weight: 600;
+  color: var(--color-text-dark);
+}
+
+.historyDate {
+  font-size: var(--font-small);
+  color: var(--color-text-grey);
+}
+
+.historyDelete {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  margin-right: var(--space-sm);
+  border: none;
+  background: none;
+  color: var(--color-text-grey);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Photo waiting to be sent */
+.preview {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  background: var(--color-white);
+  padding: var(--space-sm);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow);
+  margin-bottom: var(--space-sm);
+}
+
+.previewImage {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+}
+
+.previewText {
+  flex: 1;
+  font-size: var(--font-body);
+  color: var(--color-text-grey);
+}
+
+.previewRemove {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--color-background);
+  color: var(--color-text-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.notice {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--font-body);
+  color: var(--color-error);
+}
+
 .inputBar {
   display: flex;
   align-items: center;
@@ -63,6 +196,10 @@
   padding: var(--space-sm);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
+}
+
+.hiddenInput {
+  display: none;
 }
 
 .attachButton {
