@@ -3,6 +3,35 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { getUserFromRequest } from '../../../lib/serverAuth';
 import { getAdmin } from '../../../lib/firebaseAdmin';
 import { checkRateLimit } from '../../../lib/rateLimit';
+import { sleep, isRetryable } from '../../../lib/summaryTools';
+
+export const maxDuration = 60; // gives the retries below enough time
+
+const MAX_ATTEMPTS = 3;
+
+// Gemini's own limit was reached (too many requests for the whole site)
+function isLimitError(error) {
+  if (!error) {
+    return false;
+  }
+  const text = typeof error.message === 'string' ? error.message : '';
+  return error.status === 429 || text.includes('RESOURCE_EXHAUSTED');
+}
+
+// Gemini is at its limit or too busy for a moment
+function isBusy(error) {
+  return isLimitError(error) || (!!error && error.status === 503);
+}
+
+// A short, safe description for the Vercel logs (no keys or private text)
+function errorSummary(error) {
+  const text = error && typeof error.message === 'string' ? error.message : String(error);
+  return {
+    status: error && error.status,
+    name: error && error.name,
+    message: text.slice(0, 300),
+  };
+}
 
 const CHAT_LIMIT = 30; // questions per student
 const CHAT_WINDOW_MS = 10 * 60 * 1000; // per 10 minutes
@@ -180,28 +209,75 @@ export async function POST(request) {
     );
   }
 
-  // 5. Ask Gemini
-  try {
-    const ai = new GoogleGenAI({ apiKey: apiKey });
-    const response = await ai.models.generateContent({
-      model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
-      contents: contents,
-      config: { systemInstruction: SYSTEM_INSTRUCTION },
-    });
+  // 5. Ask Gemini. If it is busy or its limit is reached, try again, and then
+  //    try the backup model (if one is set), because each model has its own limit.
+  const ai = new GoogleGenAI({ apiKey: apiKey });
+  const mainModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
+  const backupModel = process.env.GEMINI_FALLBACK_MODEL || '';
+  let model = mainModel;
+  let usedBackup = false;
+  let lastError = null;
 
-    const reply = response.text;
-    if (!reply) {
-      return Response.json({ error: 'The AI sent an empty answer.' }, { status: 502 });
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const response = await ai.models.generateContent({
+        model: model,
+        contents: contents,
+        config: { systemInstruction: SYSTEM_INSTRUCTION },
+      });
+
+      const reply = response.text;
+      if (!reply) {
+        return Response.json({ error: 'The AI sent an empty answer.' }, { status: 502 });
+      }
+
+      // 6. Save the conversation so the student can open it again later
+      const savedChatId = await saveChat(caller.uid, body.chatId, messages, reply);
+
+      return Response.json({ reply: reply, chatId: savedChatId });
+    } catch (error) {
+      lastError = error;
+      // The full error is shown in your Vercel logs, never sent to the browser
+      console.error(
+        'Gemini error (attempt ' + attempt + ' of ' + MAX_ATTEMPTS + ', model ' + model + '):',
+        errorSummary(error)
+      );
+
+      if (attempt >= MAX_ATTEMPTS) {
+        break;
+      }
+
+      // Limit reached or Gemini busy: switch to the backup model once, right away
+      if (isBusy(error) && backupModel && !usedBackup && backupModel !== model) {
+        model = backupModel;
+        usedBackup = true;
+        continue;
+      }
+
+      // Otherwise wait a moment and try again
+      if (isBusy(error) || isRetryable(error)) {
+        await sleep(1500 * attempt);
+        continue;
+      }
+
+      break; // some other problem: trying again will not help
     }
-
-    // 6. Save the conversation so the student can open it again later
-    const savedChatId = await saveChat(caller.uid, body.chatId, messages, reply);
-
-    return Response.json({ reply: reply, chatId: savedChatId });
-  } catch (error) {
-    // The full error is shown in your terminal, never sent to the browser
-    console.error('Gemini error:', error);
-    const status = error && error.status === 429 ? 429 : 500;
-    return Response.json({ error: 'The AI could not answer right now.' }, { status: status });
   }
+
+  if (isLimitError(lastError)) {
+    return Response.json(
+      {
+        error:
+          'The AI is very busy right now because many students are using it. Please wait a minute and ask again.',
+      },
+      { status: 429 }
+    );
+  }
+  if (lastError && lastError.status === 503) {
+    return Response.json(
+      { error: 'The AI is busy for a moment. Please try again in a few seconds.' },
+      { status: 503 }
+    );
+  }
+  return Response.json({ error: 'The AI could not answer right now.' }, { status: 500 });
 }
