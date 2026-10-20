@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -8,19 +8,15 @@ import useAuth from '../../lib/useAuth';
 import { getAuthErrorMessage } from '../../lib/authErrors';
 import AuthShell from '../../components/AuthShell';
 import Button from '../../components/Button';
-import CodeInput from '../../components/CodeInput';
 
 const RESEND_WAIT = 60; // seconds
-const SENT_FLAG = 'campusai-code-sent';
+const SENT_FLAG = 'campusai-link-sent';
 
 export default function VerifyEmailPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
 
-  const [code, setCode] = useState('');
-  const [codeSent, setCodeSent] = useState(false);
   const [linkSent, setLinkSent] = useState(false);
-  const [showLinkOption, setShowLinkOption] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [checking, setChecking] = useState(false);
@@ -39,15 +35,15 @@ export default function VerifyEmailPage() {
     }
   }, [loading, user, router]);
 
-  // Did Sign Up already send a code in this browser tab?
+  // Did Sign Up already send the link in this browser tab?
   useEffect(() => {
     try {
       if (sessionStorage.getItem(SENT_FLAG) === 'yes') {
-        setCodeSent(true);
+        setLinkSent(true);
         setSecondsLeft(RESEND_WAIT);
       }
     } catch (err) {
-      // Storage can be blocked. The student can press "Send me a code".
+      // Storage can be blocked. The student can press "Send me the link".
     }
   }, []);
 
@@ -60,9 +56,9 @@ export default function VerifyEmailPage() {
     return () => clearTimeout(timer);
   }, [secondsLeft]);
 
-  // After a verification link was emailed, check every 4 seconds if it was clicked
+  // Every 4 seconds, ask Firebase if the link has been clicked
   useEffect(() => {
-    if (!linkSent) {
+    if (!user) {
       return;
     }
     const timer = setInterval(async () => {
@@ -80,63 +76,13 @@ export default function VerifyEmailPage() {
         // A short network problem. We try again on the next round.
       }
     }, 4000);
+
     return () => clearInterval(timer);
-  }, [linkSent, router]);
+  }, [user, router]);
 
-  // Asks our server to email a code
-  const requestCode = async () => {
-    if (sending || secondsLeft > 0 || !auth.currentUser) {
-      return;
-    }
-
-    setError('');
-    setNotice('');
-    setSending(true);
-
-    try {
-      const token = await auth.currentUser.getIdToken();
-      const response = await fetch('/api/verification/send', {
-        method: 'POST',
-        headers: { Authorization: 'Bearer ' + token },
-      });
-      const data = await response.json().catch(() => ({}));
-
-      if (response.ok && data.alreadyVerified) {
-        router.replace('/dashboard');
-        return;
-      }
-
-      if (response.ok) {
-        setCodeSent(true);
-        setSecondsLeft(RESEND_WAIT);
-        setCode('');
-        setNotice('We sent a new 6-digit code. Check your inbox and spam folder.');
-        try {
-          sessionStorage.setItem(SENT_FLAG, 'yes');
-        } catch (err) {
-          // Ignore
-        }
-      } else if (response.status === 429 && data.secondsLeft) {
-        setCodeSent(true);
-        setSecondsLeft(data.secondsLeft);
-        setNotice('A code was sent a moment ago. Check your inbox and spam folder.');
-      } else if (response.status === 502) {
-        // Our email service failed. Offer the backup: a link sent by Firebase.
-        setShowLinkOption(true);
-        setError('We could not email the code right now. You can use the verification link instead.');
-      } else {
-        setError(data.error || 'Could not send the code. Please try again.');
-      }
-    } catch (err) {
-      setError('Network problem. Please check your connection and try again.');
-    } finally {
-      setSending(false);
-    }
-  };
-
-  // Backup: Firebase emails a verification link
+  // Firebase emails a verification link
   const requestLink = async () => {
-    if (sending || !auth.currentUser) {
+    if (sending || secondsLeft > 0 || !auth.currentUser) {
       return;
     }
 
@@ -147,9 +93,13 @@ export default function VerifyEmailPage() {
     try {
       await sendEmailVerification(auth.currentUser);
       setLinkSent(true);
-      setNotice(
-        'We sent a verification link to your email. Click it, then come back to this page. Check your spam folder too.'
-      );
+      setSecondsLeft(RESEND_WAIT);
+      setNotice('We sent a verification link. Check your inbox and spam folder.');
+      try {
+        sessionStorage.setItem(SENT_FLAG, 'yes');
+      } catch (err) {
+        // Ignore
+      }
     } catch (err) {
       setError(getAuthErrorMessage(err));
     } finally {
@@ -157,13 +107,9 @@ export default function VerifyEmailPage() {
     }
   };
 
-  // Asks our server to check the code the student typed
-  const handleVerify = async () => {
+  // The student says they clicked the link
+  const handleCheck = async () => {
     if (checking || !auth.currentUser) {
-      return;
-    }
-    if (code.length !== 6) {
-      setError('Please enter all 6 digits.');
       return;
     }
 
@@ -172,20 +118,8 @@ export default function VerifyEmailPage() {
     setChecking(true);
 
     try {
-      const token = await auth.currentUser.getIdToken();
-      const response = await fetch('/api/verification/check', {
-        method: 'POST',
-        headers: {
-          Authorization: 'Bearer ' + token,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ code: code }),
-      });
-      const data = await response.json().catch(() => ({}));
-
-      if (response.ok && data.verified) {
-        // Refresh the account so the app sees "verified"
-        await auth.currentUser.reload();
+      await auth.currentUser.reload();
+      if (auth.currentUser.emailVerified) {
         await auth.currentUser.getIdToken(true);
         try {
           sessionStorage.removeItem(SENT_FLAG);
@@ -193,13 +127,11 @@ export default function VerifyEmailPage() {
           // Ignore
         }
         router.replace('/dashboard');
-        return;
+      } else {
+        setError('We cannot see the verification yet. Click the link in the email, then try again.');
       }
-
-      setError(data.error || 'That code did not work. Please try again.');
-      setCode('');
     } catch (err) {
-      setError('Network problem. Please check your connection and try again.');
+      setError(getAuthErrorMessage(err));
     } finally {
       setChecking(false);
     }
@@ -219,10 +151,10 @@ export default function VerifyEmailPage() {
   const resendLabel = sending
     ? 'Sending...'
     : secondsLeft > 0
-      ? 'Resend code (' + secondsLeft + 's)'
-      : codeSent
-        ? 'Resend code'
-        : 'Send me a code';
+      ? 'Resend link (' + secondsLeft + 's)'
+      : linkSent
+        ? 'Resend link'
+        : 'Send me the link';
 
   return (
     <AuthShell
@@ -232,20 +164,19 @@ export default function VerifyEmailPage() {
       footerLinkText="Sign up again"
       footerHref="/signup"
     >
-      <p style={{ marginTop: 0, marginBottom: 0, lineHeight: 1.6, textAlign: 'center' }}>
-        {codeSent ? (
+      <p style={{ marginTop: 0, lineHeight: 1.6, textAlign: 'center' }}>
+        {linkSent ? (
           <>
-            Enter the 6-digit code we sent to <strong>{email}</strong>. The code expires in 10
-            minutes. Check your spam folder if you cannot find it.
+            We sent a verification link to <strong>{email}</strong>. Click the link in that email,
+            then come back to this page. It moves on by itself once you have verified. Check your
+            spam folder if you cannot find it.
           </>
         ) : (
           <>
-            We will send a 6-digit code to <strong>{email}</strong>.
+            We will send a verification link to <strong>{email}</strong>.
           </>
         )}
       </p>
-
-      <CodeInput value={code} onChange={setCode} disabled={checking} />
 
       {error !== '' && (
         <p style={{ color: 'var(--color-error)', fontSize: '14px', textAlign: 'center' }}>
@@ -259,15 +190,11 @@ export default function VerifyEmailPage() {
       )}
 
       <div style={{ display: 'grid', gap: '12px' }}>
-        <Button title={checking ? 'Checking...' : 'Verify'} onClick={handleVerify} />
-        <Button title={resendLabel} variant="secondary" onClick={requestCode} />
-        {showLinkOption && (
-          <Button
-            title={linkSent ? 'Waiting for you to click the link...' : 'Email me a verification link instead'}
-            variant="secondary"
-            onClick={requestLink}
-          />
-        )}
+        <Button
+          title={checking ? 'Checking...' : "I've verified my email"}
+          onClick={handleCheck}
+        />
+        <Button title={resendLabel} variant="secondary" onClick={requestLink} />
         <Button title="Log Out" variant="secondary" onClick={handleLogout} />
       </div>
     </AuthShell>
