@@ -38,6 +38,8 @@
   background: none;
   border: none;
   margin-left: var(--space-sm);
+  min-height: 40px;
+  padding: 0 var(--space-xs);
   color: var(--color-primary);
   font-size: var(--font-body);
   font-weight: 600;

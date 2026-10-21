@@ -11,7 +11,8 @@
 
 .back {
   display: inline-block;
-  margin-bottom: var(--space-lg);
+  padding: 10px 0;
+  margin-bottom: var(--space-md);
   color: var(--color-primary);
   font-size: var(--font-body);
   font-weight: 600;

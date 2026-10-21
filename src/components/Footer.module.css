@@ -1,4 +1,4 @@
-﻿.footer {
+.footer {
   margin-top: auto;
   flex-shrink: 0;
   width: 100%;
@@ -31,9 +31,10 @@
 }
 
 .links a {
+  display: inline-block;
   color: var(--color-primary);
   text-decoration: none;
-  padding: 4px 0;
+  padding: 10px 4px;
 }
 
 .links a:hover {

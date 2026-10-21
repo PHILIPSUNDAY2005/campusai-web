@@ -1,0 +1,85 @@
+/* Login and Sign Up pages: one centred card on every screen size */
+.page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: var(--space-lg) var(--space-md);
+  background: var(--color-background);
+}
+
+.container {
+  width: 100%;
+  max-width: 440px;
+  min-width: 0;
+}
+
+.title {
+  margin: var(--space-md) 0 var(--space-xs);
+  text-align: center;
+  font-size: var(--font-heading);
+  color: var(--color-text-dark);
+}
+
+.tagline {
+  margin: 0 0 var(--space-lg);
+  text-align: center;
+  font-size: var(--font-medium);
+  color: var(--color-text-grey);
+}
+
+.card {
+  background: var(--color-white);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  padding: var(--space-lg);
+}
+
+/* Bigger tap area for small buttons inside the form (Forgot password, Show) */
+.card form button[type='button'] {
+  min-height: 40px;
+}
+
+.footer {
+  margin: var(--space-lg) 0 0;
+  text-align: center;
+  font-size: var(--font-body);
+  color: var(--color-text-grey);
+}
+
+.footerLink {
+  display: inline-block;
+  padding: 10px 4px;
+  color: var(--color-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.footerLink:hover {
+  text-decoration: underline;
+}
+
+/* The page footer inside this narrow card column: always centred, never a wide row */
+.container footer {
+  margin-top: var(--space-md);
+  padding: var(--space-md) 0 0;
+}
+
+.container footer > div {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .page {
+    align-items: center;
+    padding: var(--space-xl) var(--space-md);
+  }
+
+  .card {
+    padding: var(--space-xl);
+  }
+}
