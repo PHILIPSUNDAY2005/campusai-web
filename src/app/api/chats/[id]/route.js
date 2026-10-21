@@ -1,3 +1,4 @@
+import { FieldValue } from 'firebase-admin/firestore';
 import { getUserFromRequest } from '../../../../lib/serverAuth';
 import { getAdmin } from '../../../../lib/firebaseAdmin';
 
@@ -41,6 +42,7 @@ export async function GET(request, { params }) {
       id: snapshot.id,
       title: data.title || 'Chat',
       messages: Array.isArray(data.messages) ? data.messages : [],
+      feedback: data.feedback && typeof data.feedback === 'object' ? data.feedback : {},
     });
   } catch (error) {
     console.error('Chat open error:', error);
@@ -61,5 +63,51 @@ export async function DELETE(request, { params }) {
   } catch (error) {
     console.error('Chat delete error:', error);
     return Response.json({ error: 'Could not delete that chat right now.' }, { status: 500 });
+  }
+}
+
+// Saves a thumbs up or thumbs down for one AI answer (rating null removes it)
+export async function PATCH(request, { params }) {
+  try {
+    const found = await findChat(request, params);
+    if (found.error) {
+      return found.error;
+    }
+
+    let body;
+    try {
+      body = await request.json();
+    } catch (error) {
+      return Response.json({ error: 'Invalid request.' }, { status: 400 });
+    }
+
+    const messageId = body ? body.messageId : null;
+    const rating = body ? body.rating : undefined;
+    if (!Number.isSafeInteger(messageId) || messageId < 0) {
+      return Response.json({ error: 'Invalid request.' }, { status: 400 });
+    }
+    if (rating !== 'up' && rating !== 'down' && rating !== null) {
+      return Response.json({ error: 'Invalid request.' }, { status: 400 });
+    }
+
+    const snapshot = await found.ref.get();
+    if (!snapshot.exists) {
+      return Response.json({ error: 'That chat was not found.' }, { status: 404 });
+    }
+
+    // Only an AI answer that really is in this chat can be rated
+    const saved = Array.isArray(snapshot.data().messages) ? snapshot.data().messages : [];
+    const isAnswer = saved.some((m) => m && m.id === messageId && m.isUser === false);
+    if (!isAnswer) {
+      return Response.json({ error: 'That message was not found.' }, { status: 404 });
+    }
+
+    await found.ref.update({
+      ['feedback.' + messageId]: rating === null ? FieldValue.delete() : rating,
+    });
+    return Response.json({ ok: true });
+  } catch (error) {
+    console.error('Chat feedback error:', error);
+    return Response.json({ error: 'Could not save your feedback right now.' }, { status: 500 });
   }
 }

@@ -12,6 +12,7 @@ import {
   IoTrashOutline,
 } from 'react-icons/io5';
 import { auth } from '../../../lib/firebase';
+import useAuth from '../../../lib/useAuth';
 import ChatBubble from '../../../components/ChatBubble';
 import styles from './chat.module.css';
 
@@ -61,6 +62,15 @@ function shrinkPhoto(file) {
   });
 }
 
+// The first name used in the welcome message and sent to the AI so it can greet back
+function getFirstName(user) {
+  if (!user || !user.displayName) {
+    return '';
+  }
+  const first = user.displayName.trim().split(/\s+/)[0] || '';
+  return first.replace(/[^\p{L}\p{M}'-]/gu, '').slice(0, 30);
+}
+
 // The student's login token. The server needs it for every request.
 async function getToken() {
   if (!auth.currentUser) {
@@ -71,11 +81,13 @@ async function getToken() {
 
 export default function ChatPage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [messages, setMessages] = useState(startingMessages);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [chatId, setChatId] = useState(null); // which saved chat is open (null = new chat)
   const [photo, setPhoto] = useState(null); // the photo waiting to be sent
+  const [feedback, setFeedback] = useState({}); // thumbs: { messageId: 'up' | 'down' }
   const [notice, setNotice] = useState('');
 
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -85,6 +97,12 @@ export default function ChatPage() {
 
   const messagesRef = useRef(null);
   const fileRef = useRef(null);
+
+  const firstName = getFirstName(user);
+  const welcomeText =
+    'Welcome back' +
+    (firstName ? ', ' + firstName : '') +
+    '! What would you like to study today? Ask me anything about your courses, notes, or assignments.';
 
   // Scroll to the newest message whenever the list or loading state changes
   useEffect(() => {
@@ -156,6 +174,7 @@ export default function ChatPage() {
         body: JSON.stringify({
           messages: updatedMessages,
           chatId: chatId,
+          name: firstName,
           image: photoToSend ? { mimeType: photoToSend.mimeType, data: photoToSend.data } : undefined,
         }),
       });
@@ -169,7 +188,10 @@ export default function ChatPage() {
       if (data.chatId) {
         setChatId(data.chatId);
       }
-      setMessages((old) => [...old, { id: Date.now() + 1, text: data.reply, isUser: false }]);
+      setMessages((old) => [
+        ...old,
+        { id: data.replyId || Date.now() + 1, text: data.reply, isUser: false, rateable: true },
+      ]);
     } catch (error) {
       setMessages((old) => [
         ...old,
@@ -184,6 +206,47 @@ export default function ChatPage() {
       ]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ---------- Thumbs up / down ----------
+
+  const handleRate = async (messageId, rating) => {
+    if (!chatId) {
+      return;
+    }
+    const previous = feedback[messageId] || null;
+
+    const apply = (value) =>
+      setFeedback((old) => {
+        const next = { ...old };
+        if (value === null) {
+          delete next[messageId];
+        } else {
+          next[messageId] = value;
+        }
+        return next;
+      });
+
+    apply(rating); // show it at once, undo it if saving fails
+    setNotice('');
+
+    try {
+      const token = await getToken();
+      const response = await fetch('/api/chats/' + chatId, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer ' + token,
+        },
+        body: JSON.stringify({ messageId: messageId, rating: rating }),
+      });
+      if (!response.ok) {
+        throw new Error('Could not save');
+      }
+    } catch (error) {
+      apply(previous);
+      setNotice('Could not save your feedback. Please try again.');
     }
   };
 
@@ -224,6 +287,7 @@ export default function ChatPage() {
     }
     setMessages(startingMessages);
     setChatId(null);
+    setFeedback({});
     setInput('');
     setPhoto(null);
     setNotice('');
@@ -246,6 +310,7 @@ export default function ChatPage() {
       }
       setMessages(data.messages.length > 0 ? data.messages : startingMessages);
       setChatId(id);
+      setFeedback(data.feedback && typeof data.feedback === 'object' ? data.feedback : {});
       setPhoto(null);
       setNotice('');
       setHistoryOpen(false);
@@ -273,6 +338,7 @@ export default function ChatPage() {
       if (id === chatId) {
         setMessages(startingMessages);
         setChatId(null);
+        setFeedback({});
       }
     } catch (error) {
       setHistoryError(error.message || 'Could not delete that chat.');
@@ -358,7 +424,14 @@ export default function ChatPage() {
       ) : (
         <div className={styles.messages} ref={messagesRef}>
           {messages.map((message, index) => (
-            <ChatBubble key={message.id + '-' + index} text={message.text} isUser={message.isUser} />
+            <ChatBubble
+              key={message.id + '-' + index}
+              text={message.id === 1 && !message.isUser ? welcomeText : message.text}
+              isUser={message.isUser}
+              canRate={!message.isUser && message.rateable === true && !!chatId}
+              rating={feedback[message.id] || null}
+              onRate={(rating) => handleRate(message.id, rating)}
+            />
           ))}
           {loading && <ChatBubble text="Thinking..." isUser={false} />}
         </div>

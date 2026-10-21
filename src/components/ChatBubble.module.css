@@ -16,6 +16,19 @@
   overflow-wrap: anywhere;
 }
 
+/* AI answer plus the thumbs under it */
+.stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 92%;
+  min-width: 0;
+}
+
+.stack > .bubble {
+  max-width: 100%;
+}
+
 .bubbleUser {
   max-width: 85%;
   background: var(--color-primary);
@@ -146,4 +159,44 @@
 .tableWrap th {
   background: var(--color-primary-light);
   color: var(--color-primary);
+}
+
+/* Thumbs up / thumbs down under an AI answer */
+.feedback {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: 4px;
+  margin-left: 4px;
+}
+
+.rateButton {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--color-text-grey);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.rateButton:hover {
+  background: var(--color-primary-light);
+}
+
+.rateUp {
+  color: var(--color-primary);
+}
+
+.rateDown {
+  color: var(--color-error);
+}
+
+.thanks {
+  margin-left: 4px;
+  font-size: var(--font-small);
+  color: var(--color-text-grey);
 }

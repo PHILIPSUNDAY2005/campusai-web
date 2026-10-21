@@ -1,4 +1,4 @@
-﻿import LegalPage from '../../components/LegalPage';
+import LegalPage from '../../components/LegalPage';
 
 export const metadata = {
   title: 'Privacy Policy | CampusAI',
@@ -6,7 +6,7 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalPage title="Privacy Policy" updated="October 19, 2026">
+    <LegalPage title="Privacy Policy" updated="October 21, 2026">
       <h2>1. What we collect</h2>
       <ul>
         <li>
@@ -20,8 +20,14 @@ export default function PrivacyPage() {
           it expires and the number of wrong tries.
         </li>
         <li>
-          <strong>What you type into the AI:</strong> the questions you ask in the chat and the
-          notes you paste to be summarized.
+          <strong>What you type into the AI:</strong> the questions you ask in the chat, any
+          photo you attach to a question, and the notes you paste to be summarized.
+        </li>
+        <li>
+          <strong>Saved conversations:</strong> your chat questions and the AI&apos;s answers are
+          saved under your own account so you can open them again in Previous conversations. Your
+          thumbs up or thumbs down on an answer is saved with the conversation. Photos you attach
+          are sent to the AI but are not saved.
         </li>
         <li>
           <strong>Summaries you save:</strong> when you press Save Summary, we store the summary
@@ -37,8 +43,8 @@ export default function PrivacyPage() {
       <ul>
         <li>To create your account and log you in.</li>
         <li>To check that the email address belongs to you.</li>
-        <li>To show your name and your saved summaries in the app.</li>
-        <li>To send your questions and notes to the AI so it can reply or summarize.</li>
+        <li>To show your name, your saved summaries and your saved conversations in the app.</li>
+        <li>To send your questions, photos and notes to the AI so it can reply or summarize.</li>
         <li>To send account emails, such as your verification code and password reset links.</li>
         <li>To limit how many AI requests one account can make in a short time.</li>
       </ul>
@@ -47,16 +53,16 @@ export default function PrivacyPage() {
       <ul>
         <li>
           <strong>Google Firebase</strong> handles sign up, login and password reset. Its
-          database also holds your saved summaries, the temporary verification code details and
-          the usage counts described above.
+          database also holds your saved summaries, your saved conversations, the temporary
+          verification code details and the usage counts described above.
         </li>
         <li>
           <strong>Brevo</strong> delivers our emails. It receives your email address and the
           content of the message, and it keeps delivery records for a time.
         </li>
         <li>
-          <strong>Google Gemini</strong> receives your questions and pasted notes in order to
-          produce answers and summaries. Google&apos;s own terms apply to that content.
+          <strong>Google Gemini</strong> receives your questions, attached photos and pasted notes
+          in order to produce answers and summaries. Google&apos;s own terms apply to that content.
         </li>
         <li>
           <strong>Vercel</strong> hosts the website.
@@ -66,10 +72,12 @@ export default function PrivacyPage() {
 
       <h2>4. What we do not save</h2>
       <p>
-        CampusAI does not store your chat messages, and it does not store the full notes you paste
-        for summarizing. They exist in your browser while you use the page and are sent to the AI
-        service to get a reply. Only a summary that you choose to save is kept. Your saved
-        summaries are private to your account, and other students cannot read them.
+        CampusAI does not store the full notes you paste for summarizing, or the photos and files
+        you attach or upload. They are sent to the AI service to get a reply and are not kept.
+        What we do keep is the summaries you choose to save and your chat conversations (your
+        questions and the AI&apos;s answers), which are saved automatically under your own
+        account. Other students cannot read them. You can delete any conversation yourself from
+        Previous conversations in the chat.
       </p>
 
       <h2>5. How long we keep it</h2>
@@ -79,8 +87,8 @@ export default function PrivacyPage() {
           replaced when you ask for a new one.
         </li>
         <li>
-          Your account details and saved summaries stay until you ask us to delete them or your
-          account.
+          Your account details, saved summaries and saved conversations stay until you delete
+          them yourself or ask us to delete your account.
         </li>
       </ul>
 
@@ -94,14 +102,18 @@ export default function PrivacyPage() {
       <h2>7. Keeping your data safe</h2>
       <p>
         We use trusted services, keep secret keys on the server away from your browser, and use
-        database rules so that each student can read only their own saved summaries. No online
+        database rules and server checks so that each student can read only their own saved
+        summaries and conversations. No online
         service can promise perfect security, so please do not paste highly sensitive information
         into the chat.
       </p>
 
       <h2>8. Your choices</h2>
       <ul>
-        <li>You can ask us to delete your account and its data, including saved summaries.</li>
+        <li>
+          You can ask us to delete your account and its data, including saved summaries and
+          conversations.
+        </li>
         <li>You can ask what information we hold about you.</li>
         <li>You can stop using CampusAI at any time.</li>
       </ul>

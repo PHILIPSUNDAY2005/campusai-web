@@ -18,6 +18,12 @@ function isLimitError(error) {
   return error.status === 429 || text.includes('RESOURCE_EXHAUSTED');
 }
 
+// The limit for the whole DAY is used up (waiting a minute will not help)
+function isDailyLimit(error) {
+  const text = error && typeof error.message === 'string' ? error.message : '';
+  return isLimitError(error) && /PerDay|per day|RPD/i.test(text);
+}
+
 // Gemini is at its limit or too busy for a moment
 function isBusy(error) {
   return isLimitError(error) || (!!error && error.status === 503);
@@ -29,7 +35,7 @@ function errorSummary(error) {
   return {
     status: error && error.status,
     name: error && error.name,
-    message: text.slice(0, 300),
+    message: text.slice(0, 600),
   };
 }
 
@@ -56,8 +62,19 @@ function imageMatches(type, bytes) {
   return false;
 }
 
+// Keeps only one plain word (letters, accents, hyphens, apostrophes), so nothing else
+// can be slipped into the AI's instructions through the name.
+function cleanName(value) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  const firstWord = value.trim().split(/\s+/)[0] || '';
+  const name = firstWord.replace(/[^\p{L}\p{M}'-]/gu, '').slice(0, 30);
+  return name.length >= 2 ? name : '';
+}
+
 // Saves the conversation under this student's own account.
-// Returns the chat id, or null if saving failed (the answer is still shown).
+// Returns { chatId, replyId }, or null if saving failed (the answer is still shown).
 async function saveChat(uid, chatId, messages, reply) {
   try {
     const { adminDb } = getAdmin();
@@ -67,8 +84,10 @@ async function saveChat(uid, chatId, messages, reply) {
         id: typeof m.id === 'number' ? m.id : Date.now(),
         text: m.text.slice(0, 8000),
         isUser: m.isUser === true,
+        rateable: m.rateable === true, // a real AI answer that can get a thumbs up or down
       }));
-    saved.push({ id: Date.now() + 1, text: reply.slice(0, 8000), isUser: false });
+    const replyId = Date.now() + 1;
+    saved.push({ id: replyId, text: reply.slice(0, 8000), isUser: false, rateable: true });
     const recent = saved.slice(-MAX_SAVED_MESSAGES);
 
     const chats = adminDb.collection('users').doc(uid).collection('chats');
@@ -78,7 +97,7 @@ async function saveChat(uid, chatId, messages, reply) {
         { messages: recent, updatedAt: FieldValue.serverTimestamp() },
         { merge: true }
       );
-      return chatId;
+      return { chatId: chatId, replyId: replyId };
     }
 
     const firstQuestion = saved.find((m) => m.isUser);
@@ -90,7 +109,7 @@ async function saveChat(uid, chatId, messages, reply) {
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
     });
-    return ref.id;
+    return { chatId: ref.id, replyId: replyId };
   } catch (error) {
     console.error('Chat save error:', error);
     return null;
@@ -112,8 +131,12 @@ const SYSTEM_INSTRUCTION = [
   '- Comparison of two or more things: use a Markdown table.',
   '- Programming question: put code in fenced code blocks with the language name, then explain it briefly.',
   '',
+  'GREETINGS AND SMALL TALK:',
+  '- If the student only greets you (hi, hello, good morning), says thanks, or makes small talk, reply warmly in one or two short sentences. Use their first name if it is known.',
+  '- Then invite them to ask about a course, a topic or their notes. Do not write headings, lists or long answers for a greeting.',
+  '',
   'FORMATTING RULES:',
-  '- Begin with the answer. No greeting, filler, praise or emojis.',
+  '- For study questions, begin with the answer. No greeting, filler, praise or emojis.',
   '- Give each major point its own ## heading. Use ### for subheadings.',
   '- Never put definitions, types, examples, advantages and disadvantages into one paragraph.',
   '- Keep paragraphs to three sentences or fewer.',
@@ -212,6 +235,10 @@ export async function POST(request) {
   // 5. Ask Gemini. If it is busy or its limit is reached, try again, and then
   //    try the backup model (if one is set), because each model has its own limit.
   const ai = new GoogleGenAI({ apiKey: apiKey });
+  const studentName = cleanName(body.name);
+  const instruction = studentName
+    ? SYSTEM_INSTRUCTION + "\n\nThe student's first name is " + studentName + '.'
+    : SYSTEM_INSTRUCTION;
   const mainModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
   const backupModel = process.env.GEMINI_FALLBACK_MODEL || '';
   let model = mainModel;
@@ -223,7 +250,7 @@ export async function POST(request) {
       const response = await ai.models.generateContent({
         model: model,
         contents: contents,
-        config: { systemInstruction: SYSTEM_INSTRUCTION },
+        config: { systemInstruction: instruction },
       });
 
       const reply = response.text;
@@ -232,9 +259,13 @@ export async function POST(request) {
       }
 
       // 6. Save the conversation so the student can open it again later
-      const savedChatId = await saveChat(caller.uid, body.chatId, messages, reply);
+      const savedChat = await saveChat(caller.uid, body.chatId, messages, reply);
 
-      return Response.json({ reply: reply, chatId: savedChatId });
+      return Response.json({
+        reply: reply,
+        chatId: savedChat ? savedChat.chatId : null,
+        replyId: savedChat ? savedChat.replyId : null,
+      });
     } catch (error) {
       lastError = error;
       // The full error is shown in your Vercel logs, never sent to the browser
@@ -254,6 +285,11 @@ export async function POST(request) {
         continue;
       }
 
+      // The daily limit is used up and there is no backup model: stop now
+      if (isDailyLimit(error)) {
+        break;
+      }
+
       // Otherwise wait a moment and try again
       if (isBusy(error) || isRetryable(error)) {
         await sleep(1500 * attempt);
@@ -264,11 +300,20 @@ export async function POST(request) {
     }
   }
 
+  if (isDailyLimit(lastError)) {
+    return Response.json(
+      {
+        error:
+          'The AI has reached its limit for today. It starts working again after the daily reset, at about 8 or 9 am Lagos time.',
+      },
+      { status: 429 }
+    );
+  }
   if (isLimitError(lastError)) {
     return Response.json(
       {
         error:
-          'The AI is very busy right now because many students are using it. Please wait a minute and ask again.',
+          'The AI has reached its usage limit for the moment. Please wait about a minute and ask again.',
       },
       { status: 429 }
     );
