@@ -7,7 +7,11 @@ import { sleep, isRetryable } from '../../../lib/summaryTools';
 
 export const maxDuration = 60; // gives the retries below enough time
 
-const MAX_ATTEMPTS = 3;
+// Models to try, in order. Each model has its own free limit, so when one is used up
+// the next one can still answer. You can change the list in Vercel with
+// GEMINI_MODEL (the first choice) and GEMINI_FALLBACK_MODELS (names separated by commas).
+const DEFAULT_FALLBACK_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.6-flash'];
+const MAX_WAIT_SECONDS = 20; // the longest we will wait for a short per-minute limit
 
 // Gemini's own limit was reached (too many requests for the whole site)
 function isLimitError(error) {
@@ -24,9 +28,20 @@ function isDailyLimit(error) {
   return isLimitError(error) && /PerDay|per day|RPD/i.test(text);
 }
 
-// Gemini is at its limit or too busy for a moment
-function isBusy(error) {
-  return isLimitError(error) || (!!error && error.status === 503);
+// Gemini sometimes says how long to wait ("retry in 22s"). Returns seconds, or null.
+function retryDelaySeconds(error) {
+  const text = error && typeof error.message === 'string' ? error.message : '';
+  const match = text.match(/retry in ([\d.]+)\s*s/i) || text.match(/"retryDelay"\s*:\s*"([\d.]+)s"/i);
+  if (!match) {
+    return null;
+  }
+  const seconds = parseFloat(match[1]);
+  return Number.isFinite(seconds) ? seconds : null;
+}
+
+// The model name does not exist (or is not available to this key)
+function isNotFound(error) {
+  return !!error && error.status === 404;
 }
 
 // A short, safe description for the Vercel logs (no keys or private text)
@@ -232,88 +247,93 @@ export async function POST(request) {
     );
   }
 
-  // 5. Ask Gemini. If it is busy or its limit is reached, try again, and then
-  //    try the backup model (if one is set), because each model has its own limit.
+  // 5. Ask Gemini. Try each model in turn. If they are all at their limit and Gemini says
+  //    the wait is short, wait once and go through the list again.
   const ai = new GoogleGenAI({ apiKey: apiKey });
   const studentName = cleanName(body.name);
   const instruction = studentName
     ? SYSTEM_INSTRUCTION + "\n\nThe student's first name is " + studentName + '.'
     : SYSTEM_INSTRUCTION;
+
   const mainModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
-  const backupModel = process.env.GEMINI_FALLBACK_MODEL || '';
-  let model = mainModel;
-  let usedBackup = false;
+  const fromSettings = (process.env.GEMINI_FALLBACK_MODELS || process.env.GEMINI_FALLBACK_MODEL || '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter((name) => name !== '');
+  const models = [
+    ...new Set([mainModel, ...(fromSettings.length > 0 ? fromSettings : DEFAULT_FALLBACK_MODELS)]),
+  ];
+
   let lastError = null;
+  let sawMinuteLimit = false; // a limit that clears after a short wait
+  let stop = false; // some other problem: trying more models will not help
 
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    try {
-      const response = await ai.models.generateContent({
-        model: model,
-        contents: contents,
-        config: { systemInstruction: instruction },
-      });
+  for (let round = 1; round <= 2 && !stop; round++) {
+    let shortestWait = null;
 
-      const reply = response.text;
-      if (!reply) {
-        return Response.json({ error: 'The AI sent an empty answer.' }, { status: 502 });
-      }
+    for (const model of models) {
+      try {
+        const response = await ai.models.generateContent({
+          model: model,
+          contents: contents,
+          config: { systemInstruction: instruction },
+        });
 
-      // 6. Save the conversation so the student can open it again later
-      const savedChat = await saveChat(caller.uid, body.chatId, messages, reply);
+        const reply = response.text;
+        if (!reply) {
+          lastError = new Error('empty answer');
+          console.error('Gemini sent an empty answer (model ' + model + ')');
+          continue;
+        }
 
-      return Response.json({
-        reply: reply,
-        chatId: savedChat ? savedChat.chatId : null,
-        replyId: savedChat ? savedChat.replyId : null,
-      });
-    } catch (error) {
-      lastError = error;
-      // The full error is shown in your Vercel logs, never sent to the browser
-      console.error(
-        'Gemini error (attempt ' + attempt + ' of ' + MAX_ATTEMPTS + ', model ' + model + '):',
-        errorSummary(error)
-      );
+        // 6. Save the conversation so the student can open it again later
+        const savedChat = await saveChat(caller.uid, body.chatId, messages, reply);
 
-      if (attempt >= MAX_ATTEMPTS) {
+        return Response.json({
+          reply: reply,
+          chatId: savedChat ? savedChat.chatId : null,
+          replyId: savedChat ? savedChat.replyId : null,
+        });
+      } catch (error) {
+        lastError = error;
+        // The full error is shown in your Vercel logs, never sent to the browser
+        console.error('Gemini error (round ' + round + ', model ' + model + '):', errorSummary(error));
+
+        if (isLimitError(error)) {
+          if (!isDailyLimit(error)) {
+            sawMinuteLimit = true;
+            const wait = retryDelaySeconds(error);
+            if (wait !== null && (shortestWait === null || wait < shortestWait)) {
+              shortestWait = wait;
+            }
+          }
+          continue; // this model is out for now: try the next one
+        }
+
+        if (error.status === 503 || isNotFound(error) || isRetryable(error)) {
+          continue; // busy, missing or a dropped connection: try the next model
+        }
+
+        stop = true; // for example a bad request: the same problem would happen again
         break;
       }
-
-      // Limit reached or Gemini busy: switch to the backup model once, right away
-      if (isBusy(error) && backupModel && !usedBackup && backupModel !== model) {
-        model = backupModel;
-        usedBackup = true;
-        continue;
-      }
-
-      // The daily limit is used up and there is no backup model: stop now
-      if (isDailyLimit(error)) {
-        break;
-      }
-
-      // Otherwise wait a moment and try again
-      if (isBusy(error) || isRetryable(error)) {
-        await sleep(1500 * attempt);
-        continue;
-      }
-
-      break; // some other problem: trying again will not help
     }
+
+    // Every model was at a short limit: wait once, then go through the list again
+    if (!stop && round === 1 && sawMinuteLimit && shortestWait !== null && shortestWait <= MAX_WAIT_SECONDS) {
+      await sleep(Math.ceil(shortestWait * 1000) + 1000);
+      sawMinuteLimit = false;
+      continue;
+    }
+    break;
   }
 
-  if (isDailyLimit(lastError)) {
-    return Response.json(
-      {
-        error:
-          'The AI has reached its limit for today. It starts working again after the daily reset, at about 8 or 9 am Lagos time.',
-      },
-      { status: 429 }
-    );
-  }
   if (isLimitError(lastError)) {
     return Response.json(
       {
-        error:
-          'The AI has reached its usage limit for the moment. Please wait about a minute and ask again.',
+        error: sawMinuteLimit
+          ? 'The AI has reached its usage limit for the moment. Please wait about a minute and ask again.'
+          : 'The AI has reached its limit for today. It starts working again after the daily reset, at about 8 or 9 am Lagos time.',
       },
       { status: 429 }
     );
