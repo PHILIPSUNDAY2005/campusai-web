@@ -3,11 +3,11 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
-  IoThumbsDown,
-  IoThumbsDownOutline,
-  IoThumbsUp,
-  IoThumbsUpOutline,
-} from 'react-icons/io5';
+  BsHandThumbsDownFill,
+  BsHandThumbsDown,
+  BsHandThumbsUpFill,
+  BsHandThumbsUp,
+} from 'react-icons/bs';
 import styles from './ChatBubble.module.css';
 
 // Small changes to how some elements are drawn
@@ -61,7 +61,7 @@ export default function ChatBubble({ text, isUser, canRate = false, rating = nul
               title="Good answer"
               onClick={() => onRate && onRate(rating === 'up' ? null : 'up')}
             >
-              {rating === 'up' ? <IoThumbsUp size={17} /> : <IoThumbsUpOutline size={17} />}
+              {rating === 'up' ? <BsHandThumbsUpFill size={17} /> : <BsHandThumbsUp size={17} />}
             </button>
             <button
               type="button"
@@ -71,7 +71,7 @@ export default function ChatBubble({ text, isUser, canRate = false, rating = nul
               title="Bad answer"
               onClick={() => onRate && onRate(rating === 'down' ? null : 'down')}
             >
-              {rating === 'down' ? <IoThumbsDown size={17} /> : <IoThumbsDownOutline size={17} />}
+              {rating === 'down' ? <BsHandThumbsDownFill size={17} /> : <BsHandThumbsDown size={17} />}
             </button>
             {rating && <span className={styles.thanks}>Thanks for your feedback</span>}
           </div>

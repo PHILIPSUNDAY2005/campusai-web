@@ -3,14 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  IoAdd,
-  IoArrowBack,
-  IoClose,
-  IoImageOutline,
-  IoSend,
-  IoTimeOutline,
-  IoTrashOutline,
-} from 'react-icons/io5';
+  BsPlusLg,
+  BsArrowLeft,
+  BsXLg,
+  BsImage,
+  BsSendFill,
+  BsClockHistory,
+  BsTrash,
+} from 'react-icons/bs';
 import { auth } from '../../../lib/firebase';
 import useAuth from '../../../lib/useAuth';
 import ChatBubble from '../../../components/ChatBubble';
@@ -365,7 +365,7 @@ export default function ChatPage() {
           aria-label="Back to Dashboard"
           onClick={() => router.push('/dashboard')}
         >
-          <IoArrowBack size={22} />
+          <BsArrowLeft size={22} />
         </button>
         <div className={styles.headerText}>
           <h1 className={styles.title}>CampusAI Assistant</h1>
@@ -380,7 +380,7 @@ export default function ChatPage() {
           title="New chat"
           onClick={startNewChat}
         >
-          <IoAdd size={22} />
+          <BsPlusLg size={22} />
         </button>
         <button
           className={`${styles.backButton} ${historyOpen ? styles.activeButton : ''}`}
@@ -388,7 +388,7 @@ export default function ChatPage() {
           title="Previous conversations"
           onClick={toggleHistory}
         >
-          <IoTimeOutline size={22} />
+          <BsClockHistory size={22} />
         </button>
       </header>
 
@@ -416,7 +416,7 @@ export default function ChatPage() {
                 aria-label={'Delete ' + chat.title}
                 onClick={() => deleteChat(chat.id)}
               >
-                <IoTrashOutline size={18} />
+                <BsTrash size={18} />
               </button>
             </div>
           ))}
@@ -449,7 +449,7 @@ export default function ChatPage() {
             aria-label="Remove photo"
             onClick={() => setPhoto(null)}
           >
-            <IoClose size={18} />
+            <BsXLg size={18} />
           </button>
         </div>
       )}
@@ -472,7 +472,7 @@ export default function ChatPage() {
           disabled={loading}
           onClick={() => fileRef.current && fileRef.current.click()}
         >
-          <IoImageOutline size={24} />
+          <BsImage size={24} />
         </button>
         <input
           className={styles.textInput}
@@ -487,7 +487,7 @@ export default function ChatPage() {
           aria-label="Send message"
           disabled={loading}
         >
-          <IoSend size={18} />
+          <BsSendFill size={18} />
         </button>
       </form>
     </div>

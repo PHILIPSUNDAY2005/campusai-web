@@ -1,18 +1,18 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 import {
-  IoNotificationsOutline,
-  IoPersonOutline,
-  IoSparklesOutline,
-  IoReaderOutline,
-  IoCloudUploadOutline,
-  IoDocumentTextOutline,
-  IoChevronDown,
-  IoChevronUp,
-} from 'react-icons/io5';
+  BsBell,
+  BsPerson,
+  BsStars,
+  BsJournalText,
+  BsCloudUpload,
+  BsFileEarmarkText,
+  BsChevronDown,
+  BsChevronUp,
+} from 'react-icons/bs';
 import { db } from '../../../lib/firebase';
 import useAuth from '../../../lib/useAuth';
 import Logo from '../../../components/Logo';
@@ -123,34 +123,34 @@ export default function DashboardPage() {
           aria-label="Notifications"
           onClick={() => alert('Notifications will be added later.')}
         >
-          <IoNotificationsOutline size={22} />
+          <BsBell size={22} />
         </button>
         <button
           className={styles.iconButton}
           aria-label="Profile"
           onClick={() => router.push('/profile')}
         >
-          <IoPersonOutline size={22} />
+          <BsPerson size={22} />
         </button>
       </header>
 
       {/* Feature cards */}
       <div className={styles.cards}>
         <FeatureCard
-          icon={IoSparklesOutline}
+          icon={BsStars}
           title="AI Chat"
           description="Explain difficult course topics"
           buttonTitle="Start Chat"
           onClick={() => router.push('/chat')}
         />
         <FeatureCard
-          icon={IoReaderOutline}
+          icon={BsJournalText}
           title="Summarize Notes"
           description="Turn long lecture notes into shorter summaries"
           onClick={() => router.push('/notes')}
         />
         <FeatureCard
-          icon={IoCloudUploadOutline}
+          icon={BsCloudUpload}
           title="Upload Notes"
           description="Upload a photo, PDF or text file of your notes"
           onClick={() => router.push('/upload')}
@@ -174,7 +174,7 @@ export default function DashboardPage() {
 
       {activities.map((item) => {
         const isOpen = openId === item.id;
-        const Chevron = isOpen ? IoChevronUp : IoChevronDown;
+        const Chevron = isOpen ? BsChevronUp : BsChevronDown;
 
         return (
           <div key={item.id} className={styles.activityCard}>
@@ -185,7 +185,7 @@ export default function DashboardPage() {
               onClick={() => setOpenId(isOpen ? null : item.id)}
             >
               <span className={styles.activityIcon}>
-                <IoDocumentTextOutline size={20} />
+                <BsFileEarmarkText size={20} />
               </span>
               <span className={styles.activityText}>
                 <span className={styles.activityTitle}>{item.title}</span>

@@ -3,23 +3,23 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  IoHome,
-  IoHomeOutline,
-  IoChatbubbleEllipses,
-  IoChatbubbleEllipsesOutline,
-  IoDocumentText,
-  IoDocumentTextOutline,
-  IoPerson,
-  IoPersonOutline,
-} from 'react-icons/io5';
+  BsHouseFill,
+  BsHouse,
+  BsChatDotsFill,
+  BsChatDots,
+  BsFileEarmarkTextFill,
+  BsFileEarmarkText,
+  BsPersonFill,
+  BsPerson,
+} from 'react-icons/bs';
 import Logo from './Logo';
 import styles from './MainNav.module.css';
 
 const tabs = [
-  { label: 'Home', href: '/dashboard', icon: IoHomeOutline, activeIcon: IoHome },
-  { label: 'Chat', href: '/chat', icon: IoChatbubbleEllipsesOutline, activeIcon: IoChatbubbleEllipses },
-  { label: 'Notes', href: '/notes', icon: IoDocumentTextOutline, activeIcon: IoDocumentText },
-  { label: 'Profile', href: '/profile', icon: IoPersonOutline, activeIcon: IoPerson },
+  { label: 'Home', href: '/dashboard', icon: BsHouse, activeIcon: BsHouseFill },
+  { label: 'Chat', href: '/chat', icon: BsChatDots, activeIcon: BsChatDotsFill },
+  { label: 'Notes', href: '/notes', icon: BsFileEarmarkText, activeIcon: BsFileEarmarkTextFill },
+  { label: 'Profile', href: '/profile', icon: BsPerson, activeIcon: BsPersonFill },
 ];
 
 export default function MainNav() {

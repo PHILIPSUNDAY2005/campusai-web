@@ -1,15 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { IoSunnyOutline, IoMoonOutline, IoPhonePortraitOutline } from 'react-icons/io5';
+import { BsSun, BsMoon, BsPhone } from 'react-icons/bs';
 import styles from './ThemeToggle.module.css';
 
 const STORAGE_KEY = 'campusai-theme';
 
 const options = [
-  { value: 'light', label: 'Light', icon: IoSunnyOutline },
-  { value: 'dark', label: 'Dark', icon: IoMoonOutline },
-  { value: 'system', label: 'System', icon: IoPhonePortraitOutline },
+  { value: 'light', label: 'Light', icon: BsSun },
+  { value: 'dark', label: 'Dark', icon: BsMoon },
+  { value: 'system', label: 'System', icon: BsPhone },
 ];
 
 // Puts the theme on the page: "dark" or "light"

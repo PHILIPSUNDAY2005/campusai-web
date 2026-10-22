@@ -1,16 +1,16 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import {
-  IoArrowBack,
-  IoCameraOutline,
-  IoClose,
-  IoCloudUploadOutline,
-  IoDocumentTextOutline,
-  IoImageOutline,
-} from 'react-icons/io5';
+  BsArrowLeft,
+  BsCamera,
+  BsXLg,
+  BsCloudUpload,
+  BsFileEarmarkText,
+  BsImage,
+} from 'react-icons/bs';
 import { auth, db } from '../../../lib/firebase';
 import Button from '../../../components/Button';
 import notesStyles from '../notes/notes.module.css';
@@ -264,7 +264,7 @@ export default function UploadPage() {
   };
 
   const isImage = file ? getType(file).startsWith('image/') : false;
-  const FileIcon = isImage ? IoImageOutline : IoDocumentTextOutline;
+  const FileIcon = isImage ? BsImage : BsFileEarmarkText;
 
   return (
     <div className={notesStyles.page}>
@@ -274,7 +274,7 @@ export default function UploadPage() {
           aria-label="Back to Dashboard"
           onClick={() => router.push('/dashboard')}
         >
-          <IoArrowBack size={22} />
+          <BsArrowLeft size={22} />
         </button>
         <h1 className={notesStyles.headerTitle}>{result ? 'Summary Result' : 'Upload Notes'}</h1>
         <span className={notesStyles.iconSpacer}></span>
@@ -313,7 +313,7 @@ export default function UploadPage() {
               }}
             >
               <div className={styles.dropIcon}>
-                <IoCloudUploadOutline size={40} />
+                <BsCloudUpload size={40} />
               </div>
               <p className={styles.dropTitle}>Upload your notes</p>
               <p className={styles.dropHint}>
@@ -357,7 +357,7 @@ export default function UploadPage() {
                     aria-label="Remove file"
                     onClick={removeFile}
                   >
-                    <IoClose size={20} />
+                    <BsXLg size={20} />
                   </button>
                 )}
               </div>
@@ -404,7 +404,7 @@ export default function UploadPage() {
         <>
           <div className={notesStyles.documentCard}>
             <div className={notesStyles.documentIcon}>
-              <IoDocumentTextOutline size={24} />
+              <BsFileEarmarkText size={24} />
             </div>
             <div>
               <p className={notesStyles.documentLabel}>Document</p>

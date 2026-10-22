@@ -1,9 +1,9 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { IoArrowBack, IoShareSocialOutline, IoDocumentTextOutline } from 'react-icons/io5';
+import { BsArrowLeft, BsShare, BsFileEarmarkText } from 'react-icons/bs';
 import { auth, db } from '../../../lib/firebase';
 import Button from '../../../components/Button';
 import styles from './notes.module.css';
@@ -151,12 +151,12 @@ export default function NotesPage() {
           aria-label="Back to Dashboard"
           onClick={() => router.push('/dashboard')}
         >
-          <IoArrowBack size={22} />
+          <BsArrowLeft size={22} />
         </button>
         <h1 className={styles.headerTitle}>{result ? 'Summary Result' : 'Summarize Notes'}</h1>
         {result ? (
           <button className={styles.iconButton} aria-label="Share" onClick={handleShare}>
-            <IoShareSocialOutline size={22} />
+            <BsShare size={22} />
           </button>
         ) : (
           <span className={styles.iconSpacer}></span>
@@ -195,7 +195,7 @@ export default function NotesPage() {
         <>
           <div className={styles.documentCard}>
             <div className={styles.documentIcon}>
-              <IoDocumentTextOutline size={24} />
+              <BsFileEarmarkText size={24} />
             </div>
             <div>
               <p className={styles.documentLabel}>Document</p>

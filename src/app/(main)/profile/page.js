@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut, updateProfile } from 'firebase/auth';
-import { IoPersonOutline, IoHelpCircleOutline, IoChevronForward } from 'react-icons/io5';
+import { BsPerson, BsQuestionCircle, BsChevronRight } from 'react-icons/bs';
 import { auth } from '../../../lib/firebase';
 import useAuth from '../../../lib/useAuth';
 import Button from '../../../components/Button';
@@ -131,10 +131,10 @@ export default function ProfilePage() {
       {/* Edit profile */}
       <button className={styles.optionRow} onClick={() => togglePanel('edit')}>
         <span className={styles.optionIcon}>
-          <IoPersonOutline size={20} />
+          <BsPerson size={20} />
         </span>
         <span className={styles.optionText}>Edit Profile</span>
-        <IoChevronForward size={20} />
+        <BsChevronRight size={20} />
       </button>
 
       {panel === 'edit' && (
@@ -160,10 +160,10 @@ export default function ProfilePage() {
       {/* Help and support */}
       <button className={styles.optionRow} onClick={() => togglePanel('help')}>
         <span className={styles.optionIcon}>
-          <IoHelpCircleOutline size={20} />
+          <BsQuestionCircle size={20} />
         </span>
         <span className={styles.optionText}>Help &amp; Support</span>
-        <IoChevronForward size={20} />
+        <BsChevronRight size={20} />
       </button>
 
       {panel === 'help' && (
