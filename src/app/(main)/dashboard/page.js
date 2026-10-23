@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 import {
-  BsBell,
   BsPerson,
   BsStars,
   BsJournalText,
@@ -15,6 +14,7 @@ import {
 } from 'react-icons/bs';
 import { db } from '../../../lib/firebase';
 import useAuth from '../../../lib/useAuth';
+import WhatsNew from '../../../components/WhatsNew';
 import Logo from '../../../components/Logo';
 import FeatureCard from '../../../components/FeatureCard';
 import styles from './dashboard.module.css';
@@ -118,13 +118,7 @@ export default function DashboardPage() {
           </h1>
           <p className={styles.subGreeting}>What would you like to learn today?</p>
         </div>
-        <button
-          className={styles.iconButton}
-          aria-label="Notifications"
-          onClick={() => alert('Notifications will be added later.')}
-        >
-          <BsBell size={22} />
-        </button>
+        <WhatsNew />
         <button
           className={styles.iconButton}
           aria-label="Profile"
